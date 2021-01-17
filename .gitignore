@@ -1,0 +1,13 @@
+**/Binaries/
+**/Build/
+**/DerivedDataCache/
+**/Intermediate/
+**/LocalDerivedDataCache/
+!**/Saved/
+**/Saved/*
+!**/Saved/Config/
+**/Saved/Config/*
+!**/Saved/Config/Windows/
+**/.~lock*
+**/.vs
+**/*.swp
