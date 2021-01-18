@@ -15,6 +15,13 @@
   "CanContainContent": true,
   "IsBetaVersion": true,
   "Installed": true,
+  "Modules": [
+    {
+      "Name": "AlkUemChar",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+  ],
   "Plugins": [
     {
       "Name": "VRExpansionPlugin",
