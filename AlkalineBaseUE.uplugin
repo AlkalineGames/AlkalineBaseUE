@@ -14,5 +14,11 @@
   "EnabledByDefault": true,
   "CanContainContent": true,
   "IsBetaVersion": true,
-  "Installed": true
+  "Installed": true,
+  "Plugins": [
+    {
+      "Name": "VRExpansionPlugin",
+      "Enabled": true
+    }
+  ]
 }
