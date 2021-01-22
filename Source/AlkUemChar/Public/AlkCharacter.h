@@ -117,10 +117,6 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   };
   struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
 
-  inline float GetRealTimeSeconds() {
-    if (GetWorld()) return GetWorld()->GetRealTimeSeconds(); else return 0.f;
-  }
-
   void ApplyHMDState();
   void UpdateHMDState(const float DeltaSeconds);
 

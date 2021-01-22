@@ -13,6 +13,8 @@
 #include "Kismet/KismetSystemLibrary.h" // for PrintString(...)
 //#include "VRNotificationsComponent.h"
 
+#include "AlkPureWorld.h"
+
 #if 0 // TODO: @@@ Pimpl idiom requires subclasses match constructors
 struct AAlkCharacter::ImplData {
   FVector  HMDPosition;
@@ -382,7 +384,8 @@ void AAlkCharacter::InputTouchPressed(
   TouchFingerStates[FingerIndex].Location = Location;
   TouchFingerStates[FingerIndex].bDragged = false;
   TouchFingerStates[FingerIndex].bPressed = true;
-  TouchFingerStates[FingerIndex].PressedRealTimeSeconds = GetWorld()->GetRealTimeSeconds();
+  TouchFingerStates[FingerIndex].PressedRealTimeSeconds =
+    pure::WorldRealTimeSeconds(GetWorld());
 }
 
 void AAlkCharacter::InputTouchReleased(
@@ -400,7 +403,8 @@ void AAlkCharacter::InputTouchReleased(
   // TODO: @@@ ProjectSettings> Engine> Input> Mouse Properties>
   //       @@@ Use Mouse for Touch [x] will always generate InputTouchDragged
   //if (!TouchFingerStates[FingerIndex].bDragged &&
-  if ((GetRealTimeSeconds() - TouchFingerStates[FingerIndex].PressedRealTimeSeconds)
+  if (pure::WorldRealTimeSeconds(GetWorld())
+        - TouchFingerStates[FingerIndex].PressedRealTimeSeconds
       < AlkTouchSecondsThresholdForTap)
     InputTouchTapped(FingerIndex, Location);
 }
