@@ -45,6 +45,8 @@ public:
   virtual void Tick(float DeltaSeconds) override; // AActor::
 
 public: // blueprintables
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    float AlkInputDragThresholdPixels;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkLookRateDegPerSec;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
@@ -116,9 +118,13 @@ private: // !!! TODO: @@@ everything below should be in ImplData
     float PressedRealTimeSeconds = 0.f;
   };
   struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
+  FVector2D ViewportSize;
+  FVector2D ViewportDragThresholdRatio;
 
   void ApplyHMDState();
   void UpdateHMDState(const float DeltaSeconds);
+
+  void UpdateViewportState();
 
   void InputFire();
   void InputRecenterXR();

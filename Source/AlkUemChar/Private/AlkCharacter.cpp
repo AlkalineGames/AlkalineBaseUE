@@ -85,6 +85,7 @@ AAlkCharacter::completeConstruction(const int inOptions) {
     AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
   }
   // blueprintables
+  AlkInputDragThresholdPixels = 4.f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
   AlkTouchDragScale = 0.05f;
@@ -239,6 +240,18 @@ void AAlkCharacter::UpdateHMDState(const float DeltaSeconds) {
 #endif
 }
 
+void AAlkCharacter::UpdateViewportState() {
+  ViewportSize = pure::WorldGameViewportSize(GetWorld());
+  ViewportDragThresholdRatio =
+    FVector2D(AlkInputDragThresholdPixels,
+              AlkInputDragThresholdPixels)
+    / ViewportSize;
+  if (AlkTracing)
+    UKismetSystemLibrary::PrintString(this,
+      FString::Printf(TEXT("ViewportSize(%f,%f)"),
+        ViewportSize.X, ViewportSize.Y));
+}
+
 void AAlkCharacter::InputFire() {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("OnFire()")));
@@ -293,6 +306,8 @@ void AAlkCharacter::InputRotateDragEnable() {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("InputRotateDragEnable()")));
   bRotateDragEnabled = true;
+  // !!! update whenever dragging starts in case the viewport changed
+  UpdateViewportState();
 }
 
 void AAlkCharacter::InputRotateDragX(float Value) {
@@ -364,6 +379,9 @@ void AAlkCharacter::InputTouchDragged(
       }
     }
 #endif
+    if (!TouchFingerStates[FingerIndex].bDragged)
+      // !!! update whenever dragging starts in case the viewport changed
+      UpdateViewportState();
     AddControllerYawInput(locDelta.X * AlkTouchDragScale);
     AddControllerPitchInput(locDelta.Y * AlkTouchDragScale);
   }
