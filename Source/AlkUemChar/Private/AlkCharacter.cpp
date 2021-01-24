@@ -252,6 +252,13 @@ void AAlkCharacter::UpdateViewportState() {
         ViewportSize.X, ViewportSize.Y));
 }
 
+const FVector2D AAlkCharacter::UpdateViewportMousePositionReturnDelta() {
+  const auto mousePos = pure::WorldGameViewportMousePosition(GetWorld());
+  const auto deltaPos = mousePos - ViewportMousePosition;
+  ViewportMousePosition = mousePos;
+  return deltaPos;
+}
+
 void AAlkCharacter::InputFire() {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("OnFire()")));

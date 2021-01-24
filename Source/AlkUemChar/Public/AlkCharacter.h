@@ -120,11 +120,13 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
   FVector2D ViewportSize;
   FVector2D ViewportDragThresholdRatio;
+  FVector2D ViewportMousePosition;
 
   void ApplyHMDState();
   void UpdateHMDState(const float DeltaSeconds);
 
   void UpdateViewportState();
+  const FVector2D UpdateViewportMousePositionReturnDelta();
 
   void InputFire();
   void InputRecenterXR();
