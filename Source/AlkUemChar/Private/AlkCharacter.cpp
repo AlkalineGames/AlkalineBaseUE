@@ -85,7 +85,10 @@ AAlkCharacter::completeConstruction(const int inOptions) {
     AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
   }
   // blueprintables
-  AlkInputDragDegPerViewport = 360.f;
+  AlkInputDragDegPerViewport = FVector2D(360.f, 144.f);
+    // !!! ^ account for the UE PlayerController values of
+    // !!! InputYawScale (default 2.5) and
+    // !!! InputPitchScale (default -2.5)
   AlkInputDragThresholdPixels = 4.f;
   AlkInputTapThresholdSeconds = 0.3f;
   AlkLookRateDegPerSec = 45.f;
@@ -432,8 +435,10 @@ void AAlkCharacter::RotateDrag(const FVector2D& deltaPos) {
     const auto degrees = vpRatio * AlkInputDragDegPerViewport;
     if (degrees.X != 0.f)
       AddControllerYawInput(degrees.X);
+        // !!! ^ UE PlayerController applies InputYawScale
     if (degrees.Y != 0.f)
       AddControllerPitchInput(degrees.Y);
+        // !!! ^ UE PlayerController applies InputPitchScale
     if (AlkTracing)
       UKismetSystemLibrary::PrintString(this,
         FString::Printf(TEXT("RotateDrag((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
