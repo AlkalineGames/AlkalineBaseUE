@@ -13,6 +13,15 @@ inline const float WorldRealTimeSeconds(const UWorld* world) {
   return world ? world->GetRealTimeSeconds() : 0.f;
 }
 
+inline const FVector2D WorldGameViewportMousePosition(const UWorld* world) {
+  FVector2D result;
+  if (world) {
+    auto viewport = world->GetGameViewport();
+    if (viewport) viewport->GetMousePosition(result);
+  }
+  return result;
+}
+
 inline const FVector2D WorldGameViewportSize(const UWorld* world) {
   FVector2D result;
   if (world) {
