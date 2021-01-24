@@ -89,7 +89,6 @@ AAlkCharacter::completeConstruction(const int inOptions) {
   AlkInputDragThresholdPixels = 4.f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
-  AlkTouchDragScale = 0.05f;
   AlkTouchSecondsThresholdForTap = 0.3f;
   AlkTracing = false;
 }
@@ -361,37 +360,20 @@ void AAlkCharacter::InputTouchDragged(
   const ETouchIndex::Type FingerIndex,
   const FVector Location
 ) {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchDragged(...)")));
   if (FingerIndex > ETouchIndex::MAX_TOUCHES)
     return; // TODO: @@@ LOG FAILURE
-  if (FingerIndex == FingerIndexRotate) {
-    const FVector locDelta = Location
-      - TouchFingerStates[FingerIndex].Location;
-#if 0 // TODO: ### RECALCULATE TO VIEW RATIOS
-    auto world = GetWorld();
-    if (world) {
-      auto viewport = world->GetGameViewport();
-      if (viewport) {
-        FVector2D viewSize;
-        viewport->GetViewportSize(viewSize);
-        FVector2D locDeltaViewRatio = FVector2D(
-          locDelta.X, locDelta.Y) / viewSize;
-        //if (FMath::Abs(locDeltaViewRatio.X) >= 4.f / viewSize.X)
-          locDeltaViewRatio.X *= AlkTurnRateDegPerSec;
-        //if (FMath::Abs(locDeltaViewRatio.Y) >= 4.f / viewSize.Y)
-          locDeltaViewRatio.Y *= AlkTurnRateDegPerSec;
-      }
-    }
-#endif
+  const FVector deltaLoc = Location
+    - TouchFingerStates[FingerIndex].Location;
+  TouchFingerStates[FingerIndex].Location = Location;
+  if (   (FingerIndex == FingerIndexRotate)
+      && (deltaLoc.X != 0.f || deltaLoc.Y != 0.f)) {
     if (!TouchFingerStates[FingerIndex].bDragged)
       // !!! update whenever dragging starts in case the viewport changed
       UpdateViewportState();
-    AddControllerYawInput(locDelta.X * AlkTouchDragScale);
-    AddControllerPitchInput(locDelta.Y * AlkTouchDragScale);
+    else
+      TouchFingerStates[FingerIndex].bDragged = true;
+    RotateDrag(FVector2D(deltaLoc.X, deltaLoc.Y));
   }
-  TouchFingerStates[FingerIndex].Location = Location;
-  TouchFingerStates[FingerIndex].bDragged = true;
 }
 
 void AAlkCharacter::InputTouchPressed(
