@@ -115,8 +115,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
   }
   PlayerInputComponent->BindAction("AlkRotateDragWhile", IE_Pressed, this, &AAlkCharacter::InputRotateDragEnable);
   PlayerInputComponent->BindAction("AlkRotateDragWhile", IE_Released, this, &AAlkCharacter::InputRotateDragDisable);
-  PlayerInputComponent->BindAxis("AlkRotateDragX", this, &AAlkCharacter::InputRotateDragX);
-  PlayerInputComponent->BindAxis("AlkRotateDragY", this, &AAlkCharacter::InputRotateDragY);
+  PlayerInputComponent->BindAxis("AlkMouseX", this, &AAlkCharacter::InputMouseAxis);
+  PlayerInputComponent->BindAxis("AlkMouseY", this, &AAlkCharacter::InputMouseAxis);
 
   PlayerInputComponent->BindAxis("AlkLook", this, &APawn::AddControllerPitchInput);
   PlayerInputComponent->BindAxis("AlkLookRate", this, &AAlkCharacter::InputLookRate);
@@ -305,31 +305,28 @@ void AAlkCharacter::InputLookRate(float Rate) {
 }
 
 void AAlkCharacter::InputRotateDragDisable() {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputRotateDragDisable()")));
   bRotateDragEnabled = false;
+  if (AlkTracing)
+    UKismetSystemLibrary::PrintString(this,
+      FString(TEXT("InputRotateDragDisable()")));
 }
 
 void AAlkCharacter::InputRotateDragEnable() {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputRotateDragEnable()")));
   bRotateDragEnabled = true;
   // !!! update whenever dragging starts in case the viewport changed
   UpdateViewportState();
+  UpdateViewportMousePositionReturnDelta();
+  if (AlkTracing)
+    UKismetSystemLibrary::PrintString(this,
+      FString(TEXT("InputRotateDragEnable()")));
 }
 
-void AAlkCharacter::InputRotateDragX(float Value) {
-  //if (AlkTracing)
-  //  UKismetSystemLibrary::PrintString(this, FString(TEXT("InputRotateDragX(...)")));
-  if (bRotateDragEnabled)
-    AddControllerYawInput(Value);
-}
-
-void AAlkCharacter::InputRotateDragY(float Value) {
-  //if (AlkTracing)
-  //  UKismetSystemLibrary::PrintString(this, FString(TEXT("InputRotateDragY(...)")));
-  if (bRotateDragEnabled)
-    AddControllerPitchInput(Value);
+void AAlkCharacter::InputMouseAxis(float Value) {
+  if (bRotateDragEnabled && (Value != 0.f)) {
+    // !!! we are not using the passed in Value because it is inconsistent
+    // !!! due to project settings: input axis mapping scale, FOVScaling
+    RotateDrag(UpdateViewportMousePositionReturnDelta());
+  }
 }
 
 void AAlkCharacter::InputSnapMoveBackward() {

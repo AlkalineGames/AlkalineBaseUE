@@ -140,8 +140,7 @@ private: // !!! TODO: @@@ everything below should be in ImplData
 
   void InputRotateDragDisable();
   void InputRotateDragEnable();
-  void InputRotateDragX(float);
-  void InputRotateDragY(float);
+  void InputMouseAxis(float);
 
   void InputSnapMoveBackward();
   void InputSnapMoveForward();
