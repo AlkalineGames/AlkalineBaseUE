@@ -85,6 +85,7 @@ AAlkCharacter::completeConstruction(const int inOptions) {
     AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
   }
   // blueprintables
+  AlkInputDragDegPerViewport = 360.f;
   AlkInputDragThresholdPixels = 4.f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
@@ -442,4 +443,21 @@ void AAlkCharacter::InputTouchTapped(
     UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchTapped(...)")));
   if (FingerIndex == FingerIndexFire)
     AlkOnFire(Location);
+}
+
+void AAlkCharacter::RotateDrag(const FVector2D& deltaPos) {
+  if (   (deltaPos.X != 0 || deltaPos.Y != 0)
+      && (ViewportSize.X > 0.f)
+      && (ViewportSize.Y > 0.f)) {
+    const auto vpRatio = deltaPos / ViewportSize;
+    const auto degrees = vpRatio * AlkInputDragDegPerViewport;
+    if (degrees.X != 0.f)
+      AddControllerYawInput(degrees.X);
+    if (degrees.Y != 0.f)
+      AddControllerPitchInput(degrees.Y);
+    if (AlkTracing)
+      UKismetSystemLibrary::PrintString(this,
+        FString::Printf(TEXT("RotateDrag((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
+          deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
+  }
 }

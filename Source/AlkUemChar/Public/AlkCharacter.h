@@ -46,6 +46,8 @@ public:
 
 public: // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    float AlkInputDragDegPerViewport;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkLookRateDegPerSec;
@@ -153,4 +155,6 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   void InputTouchPressed(const ETouchIndex::Type FingerIndex, const FVector Location);
   void InputTouchReleased(const ETouchIndex::Type FingerIndex, const FVector Location);
   void InputTouchTapped(const ETouchIndex::Type FingerIndex, const FVector Location);
+
+  void RotateDrag(const FVector2D&);
 };
