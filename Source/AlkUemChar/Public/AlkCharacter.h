@@ -49,12 +49,12 @@ public: // blueprintables
     float AlkInputDragDegPerViewport;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    float AlkInputTapThresholdSeconds;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkLookRateDegPerSec;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkTurnRateDegPerSec;
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
-    float AlkTouchSecondsThresholdForTap;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
 

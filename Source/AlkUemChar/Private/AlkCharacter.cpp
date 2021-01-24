@@ -87,9 +87,9 @@ AAlkCharacter::completeConstruction(const int inOptions) {
   // blueprintables
   AlkInputDragDegPerViewport = 360.f;
   AlkInputDragThresholdPixels = 4.f;
+  AlkInputTapThresholdSeconds = 0.3f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
-  AlkTouchSecondsThresholdForTap = 0.3f;
   AlkTracing = false;
 }
 
@@ -112,6 +112,10 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindAction("AlkSnapMoveLeft", IE_Pressed, this, &AAlkCharacter::InputSnapMoveLeft);
     PlayerInputComponent->BindAction("AlkSnapMoveRight", IE_Pressed, this, &AAlkCharacter::InputSnapMoveRight);
   }
+  PlayerInputComponent->BindAction("AlkSnapTurnBack", IE_Pressed, this, &AAlkCharacter::InputSnapTurnBack);
+  PlayerInputComponent->BindAction("AlkSnapTurnLeft", IE_Pressed, this, &AAlkCharacter::InputSnapTurnLeft);
+  PlayerInputComponent->BindAction("AlkSnapTurnRight", IE_Pressed, this, &AAlkCharacter::InputSnapTurnRight);
+
   PlayerInputComponent->BindAction("AlkRotateDragWhile", IE_Pressed, this, &AAlkCharacter::InputRotateDragEnable);
   PlayerInputComponent->BindAction("AlkRotateDragWhile", IE_Released, this, &AAlkCharacter::InputRotateDragDisable);
   PlayerInputComponent->BindAxis("AlkMouseX", this, &AAlkCharacter::InputMouseAxis);
@@ -121,10 +125,6 @@ void AAlkCharacter::SetupPlayerInputComponent(
   PlayerInputComponent->BindAxis("AlkLookRate", this, &AAlkCharacter::InputLookRate);
   PlayerInputComponent->BindAxis("AlkTurn", this, &APawn::AddControllerYawInput);
   PlayerInputComponent->BindAxis("AlkTurnRate", this, &AAlkCharacter::InputTurnRate);
-
-  PlayerInputComponent->BindAction("AlkSnapTurnBack", IE_Pressed, this, &AAlkCharacter::InputSnapTurnBack);
-  PlayerInputComponent->BindAction("AlkSnapTurnLeft", IE_Pressed, this, &AAlkCharacter::InputSnapTurnLeft);
-  PlayerInputComponent->BindAction("AlkSnapTurnRight", IE_Pressed, this, &AAlkCharacter::InputSnapTurnRight);
 
   if (FPlatformMisc::GetUseVirtualJoysticks()
       || GetDefault<UInputSettings>()->bUseMouseForTouch) {
@@ -410,7 +410,7 @@ void AAlkCharacter::InputTouchReleased(
   //if (!TouchFingerStates[FingerIndex].bDragged &&
   if (pure::WorldRealTimeSeconds(GetWorld())
         - TouchFingerStates[FingerIndex].PressedRealTimeSeconds
-      < AlkTouchSecondsThresholdForTap)
+      < AlkInputTapThresholdSeconds)
     InputTouchTapped(FingerIndex, Location);
 }
 
