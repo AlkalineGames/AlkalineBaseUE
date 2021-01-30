@@ -21,28 +21,28 @@ class ALKUEMCHAR_API AAlkCharacter : public AVRCharacter
 
 public:
   /** required for TUniquePtr<> **/
-  AAlkCharacter(const FObjectInitializer&);
+  AAlkCharacter(FObjectInitializer const &);
   AAlkCharacter(FVTableHelper&);
   ~AAlkCharacter();
 #endif
 
 public:
-  const int OPTION_CAN_SHOOT  = 1 << 0;
-  const int OPTION_NO_JUMP    = 1 << 1;
-  const int OPTION_NO_MOVE    = 1 << 2;
-  const int OPTION_VR_3DOF    = 1 << 3;
+  static constexpr int OPTION_CAN_SHOOT  = 1 << 0;
+  static constexpr int OPTION_NO_JUMP    = 1 << 1;
+  static constexpr int OPTION_NO_MOVE    = 1 << 2;
+  static constexpr int OPTION_VR_3DOF    = 1 << 3;
 
-  const bool hasAllOptions(const int inOptions) const { return (Options & inOptions) == inOptions; }
-  const bool hasAnyOptions(const int inOptions) const { return (Options & inOptions) != 0; }
+  auto hasAllOptions(int const inOptions) const -> bool { return (Options & inOptions) == inOptions; }
+  auto hasAnyOptions(int const inOptions) const -> bool { return (Options & inOptions) != 0; }
 
 protected:
-  void completeConstruction(const int inOptions = 0);
+  void completeConstruction(int const inOptions = 0);
 
 public:
   virtual void SetupPlayerInputComponent(
     class UInputComponent*) override; // APawn::
 
-  virtual void Tick(float DeltaSeconds) override; // AActor::
+  virtual void Tick(float const DeltaSeconds) override; // AActor::
 
 public: // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
@@ -88,13 +88,13 @@ public: // blueprintables
     bool bAlkShootFromMotionControllerLeftNotRight;
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
-    void AlkOnFire(const FVector ScreenCoordinates);
-    virtual void AlkOnFire_Implementation(const FVector ScreenCoordinates);
+    void AlkOnFire(FVector const & ScreenCoordinates);
+    virtual void AlkOnFire_Implementation(FVector const & ScreenCoordinates);
       // ^ calls AlkOnShoot() if has OPTION_CAN_SHOOT
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
-    void AlkOnShoot(const FVector ScreenCoordinates);
-    virtual void AlkOnShoot_Implementation(const FVector ScreenCoordinates);
+    void AlkOnShoot(FVector const & ScreenCoordinates);
+    virtual void AlkOnShoot_Implementation(FVector const & ScreenCoordinates);
       // ^ spawns projectile
 
 private: // !!! TODO: @@@ everything below should be in ImplData
@@ -123,22 +123,22 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   FVector2D ViewportMousePosition;
 
   void ApplyHMDState();
-  void UpdateHMDState(const float DeltaSeconds);
+  void UpdateHMDState(float const DeltaSeconds);
 
   void UpdateViewportState();
-  const FVector2D UpdateViewportMousePositionReturnDelta();
+  auto UpdateViewportMousePositionReturnDelta() -> FVector2D;
 
   void InputFire();
   void InputRecenterXR();
 
-  void InputMoveForward(float);
-  void InputMoveRight(float);
-  void InputTurnRate(float);
-  void InputLookRate(float);
+  void InputMoveForward(float const);
+  void InputMoveRight(float const);
+  void InputTurnRate(float const);
+  void InputLookRate(float const);
 
   void InputRotateDragDisable();
   void InputRotateDragEnable();
-  void InputMouseAxis(float);
+  void InputMouseAxis(float const);
 
   void InputSnapMoveBackward();
   void InputSnapMoveForward();
@@ -148,10 +148,10 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   void InputSnapTurnLeft();
   void InputSnapTurnRight();
 
-  void InputTouchDragged(const ETouchIndex::Type FingerIndex, const FVector Location);
-  void InputTouchPressed(const ETouchIndex::Type FingerIndex, const FVector Location);
-  void InputTouchReleased(const ETouchIndex::Type FingerIndex, const FVector Location);
-  void InputTouchTapped(const ETouchIndex::Type FingerIndex, const FVector Location);
+  void InputTouchDragged(ETouchIndex::Type const FingerIndex, FVector const Location);
+  void InputTouchPressed(ETouchIndex::Type const FingerIndex, FVector const Location);
+  void InputTouchReleased(ETouchIndex::Type const FingerIndex, FVector const Location);
+  void InputTouchTapped(ETouchIndex::Type const FingerIndex, FVector const Location);
 
-  void RotateDrag(const FVector2D&);
+  void RotateDrag(FVector2D const &);
 };

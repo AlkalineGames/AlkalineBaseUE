@@ -21,7 +21,7 @@ struct AAlkCharacter::ImplData {
   FRotator HMDOrientation;
 };
 
-AAlkCharacter::AAlkCharacter(const FObjectInitializer& ObjectInitializer) :
+AAlkCharacter::AAlkCharacter(FObjectInitializer const & ObjectInitializer) :
   Super(ObjectInitializer),
   implData(MakeUnique<AAlkCharacter::ImplData()>())
 {}
@@ -35,7 +35,7 @@ AAlkCharacter::~AAlkCharacter() = default;
 #endif
 
 void
-AAlkCharacter::completeConstruction(const int inOptions) {
+AAlkCharacter::completeConstruction(int const inOptions) {
   Options = inOptions;
 
   if (VRReplicatedCamera)
@@ -150,14 +150,14 @@ struct LocationRotation {
 
 static LocationRotation GazeToWorld(
   UWorld* World,
-  const FVector ScreenCoordinates
+  FVector const ScreenCoordinates
 ) {
 
 }
 #endif
 
 void AAlkCharacter::AlkOnShoot_Implementation(
-  const FVector ScreenCoordinates
+  FVector const & ScreenCoordinates
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnShoot_Implementation(...)")));
@@ -165,12 +165,12 @@ void AAlkCharacter::AlkOnShoot_Implementation(
     return;
   auto world = GetWorld();
   if (world && AlkProjectileClass) {
-    const FRotator SpawnRotation = bAlkUsingMotionControllers
+    FRotator const SpawnRotation = bAlkUsingMotionControllers
       ? (bAlkShootFromMotionControllerLeftNotRight
         ? AlkNodeShootMotionControllerL->GetComponentRotation()
         : AlkNodeShootMotionControllerR->GetComponentRotation())
       : GetControlRotation();
-    const FVector SpawnLocation = (bAlkUsingMotionControllers
+    FVector const SpawnLocation = (bAlkUsingMotionControllers
       ? (bAlkShootFromMotionControllerLeftNotRight
         ? AlkNodeShootMotionControllerL->GetComponentLocation()
         : AlkNodeShootMotionControllerR->GetComponentLocation())
@@ -189,7 +189,7 @@ void AAlkCharacter::AlkOnShoot_Implementation(
 }
 
 void AAlkCharacter::AlkOnFire_Implementation(
-  const FVector ScreenCoordinates
+  FVector const & ScreenCoordinates
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnFire_Implementation(...)")));
@@ -197,7 +197,7 @@ void AAlkCharacter::AlkOnFire_Implementation(
     AlkOnShoot(ScreenCoordinates);
 }
 
-static const int HMDUpdateFrequencySeconds = 1.f;
+constexpr int HMDUpdateFrequencySeconds = 1.f;
 
 void AAlkCharacter::ApplyHMDState() {
    if (VRReplicatedCamera)
@@ -208,7 +208,7 @@ void AAlkCharacter::ApplyHMDState() {
                      : FString(TEXT("HMD NOT worn")));
 }
 
-void AAlkCharacter::UpdateHMDState(const float DeltaSeconds) {
+void AAlkCharacter::UpdateHMDState(float const DeltaSeconds) {
   HMDState.UpdateDeltaSeconds += DeltaSeconds;
   if (   (HMDState.UpdateTotalSeconds > 0.f)
       && (HMDState.UpdateDeltaSeconds < HMDUpdateFrequencySeconds))
@@ -255,9 +255,9 @@ void AAlkCharacter::UpdateViewportState() {
         ViewportSize.X, ViewportSize.Y));
 }
 
-const FVector2D AAlkCharacter::UpdateViewportMousePositionReturnDelta() {
-  const auto mousePos = pure::WorldGameViewportMousePosition(GetWorld());
-  const auto deltaPos = mousePos - ViewportMousePosition;
+auto AAlkCharacter::UpdateViewportMousePositionReturnDelta() -> FVector2D{
+  auto const mousePos = pure::WorldGameViewportMousePosition(GetWorld());
+  auto const deltaPos = mousePos - ViewportMousePosition;
   ViewportMousePosition = mousePos;
   return deltaPos;
 }
@@ -280,27 +280,27 @@ void AAlkCharacter::InputRecenterXR() {
     FVector(posAfter.X, posAfter.Y, posBefore.Z));
 }
 
-void AAlkCharacter::InputMoveForward(float Value) {
+void AAlkCharacter::InputMoveForward(float const Value) {
   if (Value != 0.0f) AddMovementInput(
       // GetActorRightVector(), Value);
       // !!! use VRBaseCharacter::
       GetVRForwardVector(), Value);
 }
 
-void AAlkCharacter::InputMoveRight(float Value) {
+void AAlkCharacter::InputMoveRight(float const Value) {
   if (Value != 0.0f) AddMovementInput(
       // GetActorRightVector(), Value);
       // !!! use VRBaseCharacter::
       GetVRRightVector(), Value);
 }
 
-void AAlkCharacter::InputTurnRate(float Rate) {
+void AAlkCharacter::InputTurnRate(float const Rate) {
   auto world = GetWorld();
   if (world && Rate != 0.0f) AddControllerYawInput(
     Rate * AlkTurnRateDegPerSec * world->GetDeltaSeconds());
 }
 
-void AAlkCharacter::InputLookRate(float Rate) {
+void AAlkCharacter::InputLookRate(float const Rate) {
   auto world = GetWorld();
   if (world && Rate != 0.0f) AddControllerPitchInput(
     Rate * AlkLookRateDegPerSec * world->GetDeltaSeconds());
@@ -323,7 +323,7 @@ void AAlkCharacter::InputRotateDragEnable() {
       FString(TEXT("InputRotateDragEnable()")));
 }
 
-void AAlkCharacter::InputMouseAxis(float Value) {
+void AAlkCharacter::InputMouseAxis(float const Value) {
   if (bRotateDragEnabled && (Value != 0.f)) {
     // !!! we are not using the passed in Value because it is inconsistent
     // !!! due to project settings: input axis mapping scale, FOVScaling
@@ -360,12 +360,12 @@ void AAlkCharacter::InputSnapTurnRight() {
 }
 
 void AAlkCharacter::InputTouchDragged(
-  const ETouchIndex::Type FingerIndex,
-  const FVector Location
+  ETouchIndex::Type const FingerIndex,
+  FVector const Location
 ) {
   if (FingerIndex > ETouchIndex::MAX_TOUCHES)
     return; // TODO: @@@ LOG FAILURE
-  const FVector deltaLoc = Location
+  FVector const deltaLoc = Location
     - TouchFingerStates[FingerIndex].Location;
   TouchFingerStates[FingerIndex].Location = Location;
   if (   (FingerIndex == FingerIndexRotate)
@@ -380,8 +380,8 @@ void AAlkCharacter::InputTouchDragged(
 }
 
 void AAlkCharacter::InputTouchPressed(
-  const ETouchIndex::Type FingerIndex,
-  const FVector Location
+  ETouchIndex::Type const FingerIndex,
+  FVector const Location
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchPressed(...)")));
@@ -397,8 +397,8 @@ void AAlkCharacter::InputTouchPressed(
 }
 
 void AAlkCharacter::InputTouchReleased(
-  const ETouchIndex::Type FingerIndex,
-  const FVector Location
+  ETouchIndex::Type const FingerIndex,
+  FVector const Location
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchReleased(...)")));
@@ -418,8 +418,8 @@ void AAlkCharacter::InputTouchReleased(
 }
 
 void AAlkCharacter::InputTouchTapped(
-  const ETouchIndex::Type FingerIndex,
-  const FVector Location
+  ETouchIndex::Type const FingerIndex,
+  FVector const Location
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchTapped(...)")));
@@ -427,12 +427,12 @@ void AAlkCharacter::InputTouchTapped(
     AlkOnFire(Location);
 }
 
-void AAlkCharacter::RotateDrag(const FVector2D& deltaPos) {
+void AAlkCharacter::RotateDrag(FVector2D const & deltaPos) {
   if (   (deltaPos.X != 0 || deltaPos.Y != 0)
       && (ViewportSize.X > 0.f)
       && (ViewportSize.Y > 0.f)) {
-    const auto vpRatio = deltaPos / ViewportSize;
-    const auto degrees = vpRatio * AlkInputDragDegPerViewport;
+    auto const vpRatio = deltaPos / ViewportSize;
+    auto const degrees = vpRatio * AlkInputDragDegPerViewport;
     if (degrees.X != 0.f)
       AddControllerYawInput(degrees.X);
         // !!! ^ UE PlayerController applies InputYawScale
