@@ -9,11 +9,15 @@
 
 namespace pure {
 
-inline const float WorldRealTimeSeconds(const UWorld* world) {
+inline auto WorldRealTimeSeconds(
+  UWorld const *const world
+) -> float {
   return world ? world->GetRealTimeSeconds() : 0.f;
 }
 
-inline const FVector2D WorldGameViewportMousePosition(const UWorld* world) {
+inline auto WorldGameViewportMousePosition(
+  UWorld const *const world
+) -> FVector2D {
   FVector2D result;
   if (world) {
     auto viewport = world->GetGameViewport();
@@ -22,7 +26,9 @@ inline const FVector2D WorldGameViewportMousePosition(const UWorld* world) {
   return result;
 }
 
-inline const FVector2D WorldGameViewportSize(const UWorld* world) {
+inline auto WorldGameViewportSize(
+  UWorld const *const world
+) -> FVector2D {
   FVector2D result;
   if (world) {
     auto viewport = world->GetGameViewport();
