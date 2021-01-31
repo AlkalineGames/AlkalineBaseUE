@@ -50,13 +50,25 @@ public: // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
-    float AlkInputTapThresholdSeconds;
+    float AlkInputHoldThresholdSeconds;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkLookRateDegPerSec;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkTurnRateDegPerSec;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    bool AlkHolding;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
+
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+    void AlkOnHoldEnter(FVector const & ScreenCoordinates);
+    virtual void AlkOnHoldEnter_Implementation(FVector const & ScreenCoordinates);
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+    void AlkOnHoldLeave(FVector const & ScreenCoordinates);
+    virtual void AlkOnHoldLeave_Implementation(FVector const & ScreenCoordinates);
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+    void AlkOnHoldMove(FVector const & ScreenCoordinates);
+    virtual void AlkOnHoldMove_Implementation(FVector const & ScreenCoordinates);
 
 #if 0 // TODO: @@@ DEPRECATED, NOW PROVIDED BY AVRCharacter
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
@@ -108,6 +120,8 @@ private: // !!! TODO: @@@ everything below should be in ImplData
     bool Worn = false;
   };
   struct HMDState HMDState;
+  bool HoldMeasuring = false;
+  float HoldSeconds = 0.f;
   ETouchIndex::Type FingerIndexFire = ETouchIndex::Touch1;
   ETouchIndex::Type FingerIndexRotate = ETouchIndex::Touch1;
   struct TouchFingerState {
@@ -124,11 +138,17 @@ private: // !!! TODO: @@@ everything below should be in ImplData
 
   void ApplyHMDState();
   void UpdateHMDState(float const DeltaSeconds);
-
+  void UpdateHoldingState(float const DeltaSeconds);
   void UpdateViewportState();
   auto UpdateViewportMousePositionReturnDelta() -> FVector2D;
 
-  void InputFireOrHold();
+  void EnterHolding(FVector const & ScreenCoordinates);
+  void LeaveHolding(FVector const & ScreenCoordinates);
+  void StartHoldMeasuring();
+  void StopHoldMeasuring();
+
+  void InputFireOrHoldPressed();
+  void InputFireOrHoldReleased();
   void InputRecenterXR();
 
   void InputMoveForward(float const);

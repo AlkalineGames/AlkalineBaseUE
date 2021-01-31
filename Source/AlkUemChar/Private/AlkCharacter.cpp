@@ -90,7 +90,7 @@ AAlkCharacter::completeConstruction(int const inOptions) {
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
   AlkInputDragThresholdPixels = 4.f;
-  AlkInputTapThresholdSeconds = 0.3f;
+  AlkInputHoldThresholdSeconds = 0.3f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
   AlkTracing = false;
@@ -101,7 +101,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
 ) {
   if (!PlayerInputComponent)
     return; // TODO: @@@ LOG FAILURE
-  PlayerInputComponent->BindAction("AlkFireOrHold", IE_Pressed, this, &AAlkCharacter::InputFireOrHold);
+  PlayerInputComponent->BindAction("AlkFireOrHold", IE_Pressed, this, &AAlkCharacter::InputFireOrHoldPressed);
+  PlayerInputComponent->BindAction("AlkFireOrHold", IE_Released, this, &AAlkCharacter::InputFireOrHoldReleased);
   PlayerInputComponent->BindAction("AlkRecenterXR", IE_Pressed, this, &AAlkCharacter::InputRecenterXR);
   if (!hasAnyOptions(OPTION_NO_JUMP)) {
     PlayerInputComponent->BindAction("AlkJump", IE_Pressed, this, &ACharacter::Jump);
@@ -140,6 +141,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
 void AAlkCharacter::Tick(float DeltaSeconds) {
   Super::Tick(DeltaSeconds);
   UpdateHMDState(DeltaSeconds);
+  UpdateHoldingState(DeltaSeconds);
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES
@@ -155,6 +157,24 @@ static LocationRotation GazeToWorld(
 
 }
 #endif
+
+void AAlkCharacter::AlkOnHoldEnter_Implementation(
+  FVector const & ScreenCoordinates
+) {
+  // TODO: ### IMPLEMENT
+}
+
+void AAlkCharacter::AlkOnHoldLeave_Implementation(
+  FVector const & ScreenCoordinates
+) {
+  // TODO: ### IMPLEMENT
+}
+
+void AAlkCharacter::AlkOnHoldMove_Implementation(
+  FVector const & ScreenCoordinates
+) {
+  // TODO: ### IMPLEMENT
+}
 
 void AAlkCharacter::AlkOnShoot_Implementation(
   FVector const & ScreenCoordinates
@@ -243,6 +263,17 @@ void AAlkCharacter::UpdateHMDState(float const DeltaSeconds) {
 #endif
 }
 
+void AAlkCharacter::UpdateHoldingState(float const DeltaSeconds) {
+  if (HoldMeasuring) {
+    HoldSeconds += DeltaSeconds;
+    if (!AlkHolding && HoldSeconds >= AlkInputHoldThresholdSeconds) {
+      auto const mousePos = UpdateViewportMousePositionReturnDelta();
+      EnterHolding(FVector(mousePos.X, mousePos.Y, 0));
+        // TODO: ^ ### ASSUMING MOUSE
+    }
+  }
+}
+
 void AAlkCharacter::UpdateViewportState() {
   ViewportSize = pure::WorldGameViewportSize(GetWorld());
   ViewportDragThresholdRatio =
@@ -262,10 +293,40 @@ auto AAlkCharacter::UpdateViewportMousePositionReturnDelta() -> FVector2D{
   return deltaPos;
 }
 
-void AAlkCharacter::InputFireOrHold() {
+void AAlkCharacter::EnterHolding(FVector const & ScreenCoordinates) {
+  AlkHolding = true;
+  AlkOnHoldEnter(ScreenCoordinates);
+}
+
+void AAlkCharacter::LeaveHolding(FVector const & ScreenCoordinates) {
+  AlkHolding = false;
+  AlkOnHoldLeave(ScreenCoordinates);
+}
+
+void AAlkCharacter::StartHoldMeasuring() {
+  HoldMeasuring = true;
+  HoldSeconds = 0.f;
+}
+
+void AAlkCharacter::StopHoldMeasuring() {
+  HoldMeasuring = false;
+  HoldSeconds = 0.f;
+}
+
+void AAlkCharacter::InputFireOrHoldPressed() {
   if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("OnFire()")));
-  AlkOnFire(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
+    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputFireOrHold()")));
+  StartHoldMeasuring();
+}
+
+void AAlkCharacter::InputFireOrHoldReleased() {
+  if (AlkTracing)
+    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputFireOrHold()")));
+  StopHoldMeasuring();
+  if (!AlkHolding)
+    AlkOnFire(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
+  else
+    LeaveHolding(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
 }
 
 void AAlkCharacter::InputRecenterXR() {
@@ -324,11 +385,17 @@ void AAlkCharacter::InputRotateDragEnable() {
 }
 
 void AAlkCharacter::InputMouseAxis(float const Value) {
-  if (bRotateDragEnabled && (Value != 0.f)) {
-    // !!! we are not using the passed in Value because it is inconsistent
-    // !!! due to project settings: input axis mapping scale, FOVScaling
-    RotateDrag(UpdateViewportMousePositionReturnDelta());
-  }
+  if (Value == 0.f)
+    return;
+  // !!! we are not using the passed in Value because it is inconsistent
+  // !!! due to project settings: input axis mapping scale, FOVScaling
+  auto const mousePos = UpdateViewportMousePositionReturnDelta();
+  if (AlkHolding)
+    AlkOnHoldMove(FVector(mousePos.X, mousePos.Y, 0));
+  if (HoldMeasuring)
+    StopHoldMeasuring();
+  if (bRotateDragEnabled)
+    RotateDrag(mousePos);
 }
 
 void AAlkCharacter::InputSnapMoveBackward() {
@@ -368,8 +435,15 @@ void AAlkCharacter::InputTouchDragged(
   FVector const deltaLoc = Location
     - TouchFingerStates[FingerIndex].Location;
   TouchFingerStates[FingerIndex].Location = Location;
-  if (   (FingerIndex == FingerIndexRotate)
-      && (deltaLoc.X != 0.f || deltaLoc.Y != 0.f)) {
+  if (deltaLoc.X == 0.f && deltaLoc.Y == 0.f)
+    return;
+  if (FingerIndex == FingerIndexFire) {
+    if (AlkHolding)
+      AlkOnHoldMove(Location);
+    else if (HoldMeasuring)
+      StopHoldMeasuring();
+  }
+  if (FingerIndex == FingerIndexRotate) {
     if (!TouchFingerStates[FingerIndex].bDragged)
       // !!! update whenever dragging starts in case the viewport changed
       UpdateViewportState();
@@ -394,6 +468,8 @@ void AAlkCharacter::InputTouchPressed(
   TouchFingerStates[FingerIndex].bPressed = true;
   TouchFingerStates[FingerIndex].PressedRealTimeSeconds =
     pure::WorldRealTimeSeconds(GetWorld());
+  if (FingerIndex == FingerIndexFire)
+    StartHoldMeasuring();
 }
 
 void AAlkCharacter::InputTouchReleased(
@@ -411,9 +487,14 @@ void AAlkCharacter::InputTouchReleased(
   // TODO: @@@ ProjectSettings> Engine> Input> Mouse Properties>
   //       @@@ Use Mouse for Touch [x] will always generate InputTouchDragged
   //if (!TouchFingerStates[FingerIndex].bDragged &&
+  if (FingerIndex == FingerIndexFire) {
+    StopHoldMeasuring();
+    if (AlkHolding)
+      LeaveHolding(Location);
+  }
   if (pure::WorldRealTimeSeconds(GetWorld())
         - TouchFingerStates[FingerIndex].PressedRealTimeSeconds
-      < AlkInputTapThresholdSeconds)
+      < AlkInputHoldThresholdSeconds)
     InputTouchTapped(FingerIndex, Location);
 }
 
