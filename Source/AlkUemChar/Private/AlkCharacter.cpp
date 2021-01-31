@@ -101,7 +101,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
 ) {
   if (!PlayerInputComponent)
     return; // TODO: @@@ LOG FAILURE
-  PlayerInputComponent->BindAction("AlkFire", IE_Pressed, this, &AAlkCharacter::InputFire);
+  PlayerInputComponent->BindAction("AlkFireOrHold", IE_Pressed, this, &AAlkCharacter::InputFireOrHold);
   PlayerInputComponent->BindAction("AlkRecenterXR", IE_Pressed, this, &AAlkCharacter::InputRecenterXR);
   if (!hasAnyOptions(OPTION_NO_JUMP)) {
     PlayerInputComponent->BindAction("AlkJump", IE_Pressed, this, &ACharacter::Jump);
@@ -262,7 +262,7 @@ auto AAlkCharacter::UpdateViewportMousePositionReturnDelta() -> FVector2D{
   return deltaPos;
 }
 
-void AAlkCharacter::InputFire() {
+void AAlkCharacter::InputFireOrHold() {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("OnFire()")));
   AlkOnFire(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
@@ -332,31 +332,31 @@ void AAlkCharacter::InputMouseAxis(float const Value) {
 }
 
 void AAlkCharacter::InputSnapMoveBackward() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputSnapMoveForward() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputSnapMoveLeft() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputSnapMoveRight() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputSnapTurnBack() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputSnapTurnLeft() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputSnapTurnRight() {
-  // TODO: ###
+  // TODO: ### IMPLEMENT
 }
 
 void AAlkCharacter::InputTouchDragged(

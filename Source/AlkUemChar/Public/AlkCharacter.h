@@ -128,7 +128,7 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   void UpdateViewportState();
   auto UpdateViewportMousePositionReturnDelta() -> FVector2D;
 
-  void InputFire();
+  void InputFireOrHold();
   void InputRecenterXR();
 
   void InputMoveForward(float const);
