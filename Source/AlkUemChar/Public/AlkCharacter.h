@@ -6,8 +6,11 @@
 //
 #pragma once
 
+#include <memory>
+
 #include "CoreMinimal.h"
 #include "VRCharacter.h"
+
 #include "AlkCharacter.generated.h"
 
 UCLASS()
@@ -15,28 +18,17 @@ class ALKUEMCHAR_API AAlkCharacter : public AVRCharacter
 {
   GENERATED_BODY()
 
-#if 0 // TODO: @@@ Pimpl idiom requires subclasses match constructors
-  struct ImplData;
-  TUniquePtr<struct ImplData> implData;
-
-public:
-  /** required for TUniquePtr<> **/
-  AAlkCharacter(FObjectInitializer const &);
-  AAlkCharacter(FVTableHelper&);
-  ~AAlkCharacter();
-#endif
-
 public:
   static constexpr int OPTION_CAN_SHOOT  = 1 << 0;
   static constexpr int OPTION_NO_JUMP    = 1 << 1;
   static constexpr int OPTION_NO_MOVE    = 1 << 2;
   static constexpr int OPTION_VR_3DOF    = 1 << 3;
 
-  auto hasAllOptions(int const inOptions) const -> bool { return (Options & inOptions) == inOptions; }
-  auto hasAnyOptions(int const inOptions) const -> bool { return (Options & inOptions) != 0; }
+  auto HasAllOptions(int const inOptions) const -> bool;
+  auto HasAnyOptions(int const inOptions) const -> bool;
 
-protected:
-  void completeConstruction(int const inOptions = 0);
+protected: // TODO: @@@ ABSTRACT CLASS, SUPERCLASSES MUSt CALL:
+  void completeConstruction(int const inOptions = 0); // TODO: @@@ CAPITALIZE
 
 public:
   virtual void SetupPlayerInputComponent(
@@ -109,44 +101,11 @@ public: // blueprintables
     virtual void AlkOnShoot_Implementation(FVector const & ScreenCoordinates);
       // ^ spawns projectile
 
-private: // !!! TODO: @@@ everything below should be in ImplData
-  int Options = 0;
-  bool bRotateDragEnabled = false;
-  struct HMDState {
-    FRotator Orientation;
-    FVector Position;
-    float UpdateDeltaSeconds = 0.f;
-    float UpdateTotalSeconds = 0.f;
-    bool Worn = false;
-  };
-  struct HMDState HMDState;
-  bool HoldMeasuring = false;
-  float HoldSeconds = 0.f;
-  ETouchIndex::Type FingerIndexFire = ETouchIndex::Touch1;
-  ETouchIndex::Type FingerIndexRotate = ETouchIndex::Touch1;
-  struct TouchFingerState {
-    ETouchIndex::Type FingerIndex = ETouchIndex::CursorPointerIndex;
-    FVector Location = FVector::ZeroVector;
-    bool bDragged = false;
-    bool bPressed = false;
-    float PressedRealTimeSeconds = 0.f;
-  };
-  struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
-  FVector2D ViewportSize;
-  FVector2D ViewportDragThresholdRatio;
-  FVector2D ViewportMousePosition;
+  struct Impl { virtual ~Impl() = 0; };
+private:
+  std::unique_ptr<struct Impl> impl;
 
-  void ApplyHMDState();
-  void UpdateHMDState(float const DeltaSeconds);
-  void UpdateHoldingState(float const DeltaSeconds);
-  void UpdateViewportState();
-  auto UpdateViewportMousePositionReturnDelta() -> FVector2D;
-
-  void EnterHolding(FVector const & ScreenCoordinates);
-  void LeaveHolding(FVector const & ScreenCoordinates);
-  void StartHoldMeasuring();
-  void StopHoldMeasuring();
-
+// TODO: @@@ REFACTOR THESE BINDINGS METHODS TO BE HIDDEN IN THE IMPL
   void InputFireOrHoldPressed();
   void InputFireOrHoldReleased();
   void InputRecenterXR();
@@ -172,6 +131,4 @@ private: // !!! TODO: @@@ everything below should be in ImplData
   void InputTouchPressed(ETouchIndex::Type const FingerIndex, FVector const Location);
   void InputTouchReleased(ETouchIndex::Type const FingerIndex, FVector const Location);
   void InputTouchTapped(ETouchIndex::Type const FingerIndex, FVector const Location);
-
-  void RotateDrag(FVector2D const &);
 };

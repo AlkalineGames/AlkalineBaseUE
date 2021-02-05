@@ -15,28 +15,376 @@
 
 #include "AlkPureWorld.h"
 
-#if 0 // TODO: @@@ Pimpl idiom requires subclasses match constructors
-struct AAlkCharacter::ImplData {
-  FVector  HMDPosition;
-  FRotator HMDOrientation;
-};
+constexpr int HMDUpdateFrequencySeconds = 1.f;
 
-AAlkCharacter::AAlkCharacter(FObjectInitializer const & ObjectInitializer) :
-  Super(ObjectInitializer),
-  implData(MakeUnique<AAlkCharacter::ImplData()>())
-{}
+struct AAlkCharacterImpl: AAlkCharacter::Impl {
+  int Options = 0;
+  bool bRotateDragEnabled = false;
+  struct HMDState {
+    FRotator Orientation;
+    FVector Position;
+    float UpdateDeltaSeconds = 0.f;
+    float UpdateTotalSeconds = 0.f;
+    bool Worn = false;
+  };
+  struct HMDState HMDState;
+  bool HoldMeasuring = false;
+  float HoldSeconds = 0.f;
+  ETouchIndex::Type FingerIndexFire = ETouchIndex::Touch1;
+  ETouchIndex::Type FingerIndexRotate = ETouchIndex::Touch1;
+  struct TouchFingerState {
+    ETouchIndex::Type FingerIndex = ETouchIndex::CursorPointerIndex;
+    FVector Location = FVector::ZeroVector;
+    bool bDragged = false;
+    bool bPressed = false;
+    float PressedRealTimeSeconds = 0.f;
+  };
+  struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
+  FVector2D ViewportSize;
+  FVector2D ViewportDragThresholdRatio;
+  FVector2D ViewportMousePosition;
 
-AAlkCharacter::AAlkCharacter(FVTableHelper& Helper) :
-  Super(Helper),
-  implData(MakeUnique<AAlkCharacter::ImplData()>())
-{}
+  AAlkCharacter const & face;
+  AAlkCharacter & face_mut;
 
-AAlkCharacter::~AAlkCharacter() = default;
+  AAlkCharacterImpl(AAlkCharacter& face)
+    : face(face), face_mut(face) {}
+
+  ~AAlkCharacterImpl() {}
+
+  void ApplyHMDState() {
+    if (face_mut.VRReplicatedCamera)
+      face_mut.VRReplicatedCamera->bUsePawnControlRotation = !HMDState.Worn;
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        HMDState.Worn ? FString(TEXT("HMD worn"))
+                      : FString(TEXT("HMD NOT worn")));
+  }
+
+  void UpdateHMDState(float const DeltaSeconds) {
+    HMDState.UpdateDeltaSeconds += DeltaSeconds;
+    if (   (HMDState.UpdateTotalSeconds > 0.f)
+        && (HMDState.UpdateDeltaSeconds < HMDUpdateFrequencySeconds))
+      return;
+    FRotator orientation;
+    FVector position;
+    UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(
+      orientation, position);
+    bool worn = (HMDState.Orientation != orientation)
+                || (HMDState.Position != position);
+    if (worn) {
+      HMDState.Orientation = orientation;
+      HMDState.Position = position;
+    }
+    if (   (HMDState.UpdateTotalSeconds == 0.f)
+        || (HMDState.Worn != worn)) {
+      HMDState.Worn = worn;
+      ApplyHMDState();
+    }
+    HMDState.UpdateTotalSeconds += HMDState.UpdateDeltaSeconds;
+    HMDState.UpdateDeltaSeconds = 0.f;
+#if 0 // TODO: @@@ SteamVR DOES NOT PROPERLY INDICATE WornState
+    static auto prevWornState = EHMDWornState::Unknown;
+    auto nextWornState = UHeadMountedDisplayFunctionLibrary::GetHMDWornState();
+    if (nextWornState != prevWornState) {
+      prevWornState = nextWornState;
+      bool worn = (nextWornState == EHMDWornState::Worn);
+      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("HMDWornState")));
+      if (VRReplicatedCamera)
+        VRReplicatedCamera->bUsePawnControlRotation = !worn;
+    }
 #endif
+  }
 
-void
-AAlkCharacter::completeConstruction(int const inOptions) {
-  Options = inOptions;
+  void UpdateHoldingState(float const DeltaSeconds) {
+    if (HoldMeasuring) {
+      HoldSeconds += DeltaSeconds;
+      if (!face.AlkHolding && HoldSeconds >= face.AlkInputHoldThresholdSeconds) {
+        auto const mousePos = UpdateViewportMousePositionReturnDelta();
+        EnterHolding(FVector(mousePos.X, mousePos.Y, 0));
+          // TODO: ^ ### ASSUMING MOUSE
+      }
+    }
+  }
+
+  void UpdateViewportState() {
+    ViewportSize = pure::WorldGameViewportSize(face.GetWorld());
+    ViewportDragThresholdRatio =
+      FVector2D(face.AlkInputDragThresholdPixels,
+                face.AlkInputDragThresholdPixels)
+      / ViewportSize;
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString::Printf(TEXT("ViewportSize(%f,%f)"),
+          ViewportSize.X, ViewportSize.Y));
+  }
+
+  auto UpdateViewportMousePositionReturnDelta() -> FVector2D{
+    auto const mousePos = pure::WorldGameViewportMousePosition(face.GetWorld());
+    auto const deltaPos = mousePos - ViewportMousePosition;
+    ViewportMousePosition = mousePos;
+    return deltaPos;
+  }
+
+  void EnterHolding(FVector const & ScreenCoordinates) {
+    face_mut.AlkHolding = true;
+    face_mut.AlkOnHoldEnter(ScreenCoordinates);
+  }
+
+  void LeaveHolding(FVector const & ScreenCoordinates) {
+    face_mut.AlkHolding = false;
+    face_mut.AlkOnHoldLeave(ScreenCoordinates);
+  }
+
+  void StartHoldMeasuring() {
+    HoldMeasuring = true;
+    HoldSeconds = 0.f;
+  }
+
+  void StopHoldMeasuring() {
+    HoldMeasuring = false;
+    HoldSeconds = 0.f;
+  }
+
+  void InputFireOrHoldPressed() {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputFireOrHold()")));
+    StartHoldMeasuring();
+  }
+
+  void InputFireOrHoldReleased() {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputFireOrHold()")));
+    StopHoldMeasuring();
+    if (!face.AlkHolding)
+      face_mut.AlkOnFire(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
+    else
+      LeaveHolding(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
+  }
+
+  void InputRecenterXR() {
+    auto xrTrackingSystem = GEngine->XRSystem; // interface to HMD
+    if (!xrTrackingSystem)
+      return;
+    auto posBefore = xrTrackingSystem->GetBasePosition();
+    UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
+      // !!! ^ in room scale, position Z will be offset to the floor
+    auto posAfter = xrTrackingSystem->GetBasePosition();
+    xrTrackingSystem->SetBasePosition(
+      FVector(posAfter.X, posAfter.Y, posBefore.Z));
+  }
+
+  void InputMoveForward(float const Value) {
+    if (Value != 0.0f) face_mut.AddMovementInput(
+        // face.GetActorRightVector(), Value);
+        // !!! use VRBaseCharacter::
+        face.GetVRForwardVector(), Value);
+  }
+
+  void InputMoveRight(float const Value) {
+    if (Value != 0.0f) face_mut.AddMovementInput(
+        // face.GetActorRightVector(), Value);
+        // !!! use VRBaseCharacter::
+        face.GetVRRightVector(), Value);
+  }
+
+  void InputTurnRate(float const Rate) {
+    auto world = face.GetWorld();
+    if (world && Rate != 0.0f) face_mut.AddControllerYawInput(
+      Rate * face.AlkTurnRateDegPerSec * world->GetDeltaSeconds());
+  }
+
+  void InputLookRate(float const Rate) {
+    auto world = face.GetWorld();
+    if (world && Rate != 0.0f) face_mut.AddControllerPitchInput(
+      Rate * face.AlkLookRateDegPerSec * world->GetDeltaSeconds());
+  }
+
+  void InputRotateDragDisable() {
+    bRotateDragEnabled = false;
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputRotateDragDisable()")));
+  }
+
+  void InputRotateDragEnable() {
+    bRotateDragEnabled = true;
+    // !!! update whenever dragging starts in case the viewport changed
+    UpdateViewportState();
+    UpdateViewportMousePositionReturnDelta();
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputRotateDragEnable()")));
+  }
+
+  void InputMouseAxis(float const Value) {
+    if (Value == 0.f)
+      return;
+    // !!! we are not using the passed in Value because it is inconsistent
+    // !!! due to project settings: input axis mapping scale, FOVScaling
+    auto const mousePos = UpdateViewportMousePositionReturnDelta();
+    if (face.AlkHolding)
+      face_mut.AlkOnHoldMove(FVector(mousePos.X, mousePos.Y, 0));
+    if (HoldMeasuring)
+      StopHoldMeasuring();
+    if (bRotateDragEnabled)
+      RotateDrag(mousePos);
+  }
+
+  void InputSnapMoveBackward() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputSnapMoveForward() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputSnapMoveLeft() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputSnapMoveRight() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputSnapTurnBack() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputSnapTurnLeft() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputSnapTurnRight() {
+    // TODO: ### IMPLEMENT
+  }
+
+  void InputTouchDragged(
+    ETouchIndex::Type const FingerIndex,
+    FVector const Location
+  ) {
+    if (FingerIndex > ETouchIndex::MAX_TOUCHES)
+      return; // TODO: @@@ LOG FAILURE
+    FVector const deltaLoc = Location
+      - TouchFingerStates[FingerIndex].Location;
+    TouchFingerStates[FingerIndex].Location = Location;
+    if (deltaLoc.X == 0.f && deltaLoc.Y == 0.f)
+      return;
+    if (FingerIndex == FingerIndexFire) {
+      if (face.AlkHolding)
+        face_mut.AlkOnHoldMove(Location);
+      else if (HoldMeasuring)
+        StopHoldMeasuring();
+    }
+    if (FingerIndex == FingerIndexRotate) {
+      if (!TouchFingerStates[FingerIndex].bDragged)
+        // !!! update whenever dragging starts in case the viewport changed
+        UpdateViewportState();
+      else
+        TouchFingerStates[FingerIndex].bDragged = true;
+      RotateDrag(FVector2D(deltaLoc.X, deltaLoc.Y));
+    }
+  }
+
+  void InputTouchPressed(
+    ETouchIndex::Type const FingerIndex,
+    FVector const Location
+  ) {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputTouchPressed(...)")));
+    if (FingerIndex > ETouchIndex::MAX_TOUCHES)
+      return; // TODO: @@@ LOG FAILURE
+    if (TouchFingerStates[FingerIndex].bPressed)
+      return; // TODO: @@@ LOG FAILURE
+    TouchFingerStates[FingerIndex].Location = Location;
+    TouchFingerStates[FingerIndex].bDragged = false;
+    TouchFingerStates[FingerIndex].bPressed = true;
+    TouchFingerStates[FingerIndex].PressedRealTimeSeconds =
+      pure::WorldRealTimeSeconds(face.GetWorld());
+    if (FingerIndex == FingerIndexFire)
+      StartHoldMeasuring();
+  }
+
+  void InputTouchReleased(
+    ETouchIndex::Type const FingerIndex,
+    FVector const Location
+  ) {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputTouchReleased(...)")));
+    if (FingerIndex > ETouchIndex::MAX_TOUCHES)
+      return; // TODO: @@@ LOG FAILURE
+    if (!TouchFingerStates[FingerIndex].bPressed)
+      return; // TODO: @@@ LOG FAILURE
+    TouchFingerStates[FingerIndex].Location = Location;
+    TouchFingerStates[FingerIndex].bPressed = false;
+    // TODO: @@@ ProjectSettings> Engine> Input> Mouse Properties>
+    //       @@@ Use Mouse for Touch [x] will always generate InputTouchDragged
+    //if (!TouchFingerStates[FingerIndex].bDragged &&
+      if (FingerIndex == FingerIndexFire) {
+        StopHoldMeasuring();
+        if (face.AlkHolding)
+        LeaveHolding(Location);
+    }
+    if (pure::WorldRealTimeSeconds(face.GetWorld())
+          - TouchFingerStates[FingerIndex].PressedRealTimeSeconds
+        < face.AlkInputHoldThresholdSeconds)
+      InputTouchTapped(FingerIndex, Location);
+  }
+
+  void InputTouchTapped(
+    ETouchIndex::Type const FingerIndex,
+    FVector const Location
+  ) {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputTouchTapped(...)")));
+      if (FingerIndex == FingerIndexFire)
+      face_mut.AlkOnFire(Location);
+  }
+
+  void RotateDrag(FVector2D const & deltaPos) {
+    if (   (deltaPos.X != 0 || deltaPos.Y != 0)
+        && (ViewportSize.X > 0.f)
+        && (ViewportSize.Y > 0.f)) {
+      auto const vpRatio = deltaPos / ViewportSize;
+      auto const degrees = vpRatio * face.AlkInputDragDegPerViewport;
+      if (degrees.X != 0.f)
+        face_mut.AddControllerYawInput(degrees.X);
+          // !!! ^ UE PlayerController applies InputYawScale
+      if (degrees.Y != 0.f)
+        face_mut.AddControllerPitchInput(degrees.Y);
+          // !!! ^ UE PlayerController applies InputPitchScale
+      if (face.AlkTracing)
+        UKismetSystemLibrary::PrintString(&face_mut,
+        FString::Printf(TEXT("RotateDrag((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
+          deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
+    }
+  }
+
+}; // end of struct AAlkCharacterImpl
+
+static inline AAlkCharacterImpl const & downcast(
+  std::unique_ptr<AAlkCharacter::Impl> const & impl
+) {
+  return static_cast<AAlkCharacterImpl const&>(*impl);
+}
+
+static inline AAlkCharacterImpl& downcast_mut(
+  std::unique_ptr<AAlkCharacter::Impl> const & impl
+) {
+  return static_cast<AAlkCharacterImpl&>(*impl);
+}
+
+auto AAlkCharacter::HasAllOptions(int const Options) const -> bool {
+  return (downcast(impl).Options & Options) == Options;
+}
+
+auto AAlkCharacter::HasAnyOptions(int const Options) const -> bool {
+  return (downcast(impl).Options & Options) != 0;
+}
+
+void AAlkCharacter::completeConstruction(int const inOptions) {
+  impl.reset(new AAlkCharacterImpl(*this));
+  downcast_mut(impl).Options = inOptions;
 
   if (VRReplicatedCamera)
     VRReplicatedCamera->SetRelativeLocation(
@@ -62,20 +410,20 @@ AAlkCharacter::completeConstruction(int const inOptions) {
   AlkMotionControllerL = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("AlkMotionControllerL"));
   AlkMotionControllerL->MotionSource = FXRMotionControllerBase::LeftHandSourceId;
   AlkMotionControllerL->SetupAttachment(
-    hasAnyOptions(OPTION_VR_3DOF)
+    HasAnyOptions(OPTION_VR_3DOF)
     ? AlkNodeHmdOffset // !!! motion controller is relative to HMD
     : RootComponent
   );
   AlkMotionControllerR = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("AlkMotionControllerR"));
   AlkMotionControllerR->MotionSource = FXRMotionControllerBase::RightHandSourceId;
   AlkMotionControllerR->SetupAttachment(
-    hasAnyOptions(OPTION_VR_3DOF)
+    HasAnyOptions(OPTION_VR_3DOF)
     ? AlkNodeHmdOffset // !!! motion controller is relative to HMD
     : RootComponent
   );
 #endif
 
-  if (hasAnyOptions(OPTION_CAN_SHOOT)) {
+  if (HasAnyOptions(OPTION_CAN_SHOOT)) {
     AlkNodeShootMotionControllerL = CreateDefaultSubobject<USceneComponent>(TEXT("AlkNodeShootMotionControllerL"));
     AlkNodeShootMotionControllerR = CreateDefaultSubobject<USceneComponent>(TEXT("AlkNodeShootMotionControllerR"));
     if (LeftMotionController)
@@ -101,14 +449,15 @@ void AAlkCharacter::SetupPlayerInputComponent(
 ) {
   if (!PlayerInputComponent)
     return; // TODO: @@@ LOG FAILURE
+  // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
   PlayerInputComponent->BindAction("AlkFireOrHold", IE_Pressed, this, &AAlkCharacter::InputFireOrHoldPressed);
   PlayerInputComponent->BindAction("AlkFireOrHold", IE_Released, this, &AAlkCharacter::InputFireOrHoldReleased);
   PlayerInputComponent->BindAction("AlkRecenterXR", IE_Pressed, this, &AAlkCharacter::InputRecenterXR);
-  if (!hasAnyOptions(OPTION_NO_JUMP)) {
+  if (!HasAnyOptions(OPTION_NO_JUMP)) {
     PlayerInputComponent->BindAction("AlkJump", IE_Pressed, this, &ACharacter::Jump);
     PlayerInputComponent->BindAction("AlkJump", IE_Released, this, &ACharacter::StopJumping);
   }
-  if (!hasAnyOptions(OPTION_NO_MOVE)) {
+  if (!HasAnyOptions(OPTION_NO_MOVE)) {
     PlayerInputComponent->BindAxis("AlkMoveForward", this, &AAlkCharacter::InputMoveForward);
     PlayerInputComponent->BindAxis("AlkMoveRight", this, &AAlkCharacter::InputMoveRight);
     PlayerInputComponent->BindAction("AlkSnapMoveBackward", IE_Pressed, this, &AAlkCharacter::InputSnapMoveBackward);
@@ -140,8 +489,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
 
 void AAlkCharacter::Tick(float DeltaSeconds) {
   Super::Tick(DeltaSeconds);
-  UpdateHMDState(DeltaSeconds);
-  UpdateHoldingState(DeltaSeconds);
+  downcast_mut(impl).UpdateHMDState(DeltaSeconds);
+  downcast_mut(impl).UpdateHoldingState(DeltaSeconds);
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES
@@ -181,7 +530,7 @@ void AAlkCharacter::AlkOnShoot_Implementation(
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnShoot_Implementation(...)")));
-  if (!hasAnyOptions(OPTION_CAN_SHOOT))
+  if (!HasAnyOptions(OPTION_CAN_SHOOT))
     return;
   auto world = GetWorld();
   if (world && AlkProjectileClass) {
@@ -213,316 +562,98 @@ void AAlkCharacter::AlkOnFire_Implementation(
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnFire_Implementation(...)")));
-  if (hasAnyOptions(OPTION_CAN_SHOOT))
+  if (HasAnyOptions(OPTION_CAN_SHOOT))
     AlkOnShoot(ScreenCoordinates);
 }
 
-constexpr int HMDUpdateFrequencySeconds = 1.f;
-
-void AAlkCharacter::ApplyHMDState() {
-   if (VRReplicatedCamera)
-     VRReplicatedCamera->bUsePawnControlRotation = !HMDState.Worn;
-   if (AlkTracing)
-     UKismetSystemLibrary::PrintString(this,
-       HMDState.Worn ? FString(TEXT("HMD worn"))
-                     : FString(TEXT("HMD NOT worn")));
-}
-
-void AAlkCharacter::UpdateHMDState(float const DeltaSeconds) {
-  HMDState.UpdateDeltaSeconds += DeltaSeconds;
-  if (   (HMDState.UpdateTotalSeconds > 0.f)
-      && (HMDState.UpdateDeltaSeconds < HMDUpdateFrequencySeconds))
-    return;
-  FRotator orientation;
-  FVector position;
-  UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(
-    orientation, position);
-  bool worn = (HMDState.Orientation != orientation)
-              || (HMDState.Position != position);
-  if (worn) {
-    HMDState.Orientation = orientation;
-    HMDState.Position = position;
-  }
-  if (   (HMDState.UpdateTotalSeconds == 0.f)
-      || (HMDState.Worn != worn)) {
-    HMDState.Worn = worn;
-    ApplyHMDState();
-  }
-  HMDState.UpdateTotalSeconds += HMDState.UpdateDeltaSeconds;
-  HMDState.UpdateDeltaSeconds = 0.f;
-#if 0 // TODO: @@@ SteamVR DOES NOT PROPERLY INDICATE WornState
-  static auto prevWornState = EHMDWornState::Unknown;
-  auto nextWornState = UHeadMountedDisplayFunctionLibrary::GetHMDWornState();
-  if (nextWornState != prevWornState) {
-    prevWornState = nextWornState;
-    bool worn = (nextWornState == EHMDWornState::Worn);
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("HMDWornState")));
-    if (VRReplicatedCamera)
-      VRReplicatedCamera->bUsePawnControlRotation = !worn;
-  }
-#endif
-}
-
-void AAlkCharacter::UpdateHoldingState(float const DeltaSeconds) {
-  if (HoldMeasuring) {
-    HoldSeconds += DeltaSeconds;
-    if (!AlkHolding && HoldSeconds >= AlkInputHoldThresholdSeconds) {
-      auto const mousePos = UpdateViewportMousePositionReturnDelta();
-      EnterHolding(FVector(mousePos.X, mousePos.Y, 0));
-        // TODO: ^ ### ASSUMING MOUSE
-    }
-  }
-}
-
-void AAlkCharacter::UpdateViewportState() {
-  ViewportSize = pure::WorldGameViewportSize(GetWorld());
-  ViewportDragThresholdRatio =
-    FVector2D(AlkInputDragThresholdPixels,
-              AlkInputDragThresholdPixels)
-    / ViewportSize;
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this,
-      FString::Printf(TEXT("ViewportSize(%f,%f)"),
-        ViewportSize.X, ViewportSize.Y));
-}
-
-auto AAlkCharacter::UpdateViewportMousePositionReturnDelta() -> FVector2D{
-  auto const mousePos = pure::WorldGameViewportMousePosition(GetWorld());
-  auto const deltaPos = mousePos - ViewportMousePosition;
-  ViewportMousePosition = mousePos;
-  return deltaPos;
-}
-
-void AAlkCharacter::EnterHolding(FVector const & ScreenCoordinates) {
-  AlkHolding = true;
-  AlkOnHoldEnter(ScreenCoordinates);
-}
-
-void AAlkCharacter::LeaveHolding(FVector const & ScreenCoordinates) {
-  AlkHolding = false;
-  AlkOnHoldLeave(ScreenCoordinates);
-}
-
-void AAlkCharacter::StartHoldMeasuring() {
-  HoldMeasuring = true;
-  HoldSeconds = 0.f;
-}
-
-void AAlkCharacter::StopHoldMeasuring() {
-  HoldMeasuring = false;
-  HoldSeconds = 0.f;
-}
-
+// TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
 void AAlkCharacter::InputFireOrHoldPressed() {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputFireOrHold()")));
-  StartHoldMeasuring();
+  downcast_mut(impl).InputFireOrHoldPressed();
 }
 
 void AAlkCharacter::InputFireOrHoldReleased() {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputFireOrHold()")));
-  StopHoldMeasuring();
-  if (!AlkHolding)
-    AlkOnFire(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
-  else
-    LeaveHolding(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
+  downcast_mut(impl).InputFireOrHoldReleased();
 }
 
 void AAlkCharacter::InputRecenterXR() {
-  auto xrTrackingSystem = GEngine->XRSystem; // interface to HMD
-  if (!xrTrackingSystem)
-    return;
-  auto posBefore = xrTrackingSystem->GetBasePosition();
-  UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-    // !!! ^ in room scale, position Z will be offset to the floor
-  auto posAfter = xrTrackingSystem->GetBasePosition();
-  xrTrackingSystem->SetBasePosition(
-    FVector(posAfter.X, posAfter.Y, posBefore.Z));
+  downcast_mut(impl).InputRecenterXR();
 }
 
 void AAlkCharacter::InputMoveForward(float const Value) {
-  if (Value != 0.0f) AddMovementInput(
-      // GetActorRightVector(), Value);
-      // !!! use VRBaseCharacter::
-      GetVRForwardVector(), Value);
+  downcast_mut(impl).InputMoveForward(Value);
 }
 
 void AAlkCharacter::InputMoveRight(float const Value) {
-  if (Value != 0.0f) AddMovementInput(
-      // GetActorRightVector(), Value);
-      // !!! use VRBaseCharacter::
-      GetVRRightVector(), Value);
+  downcast_mut(impl).InputMoveRight(Value);
 }
 
 void AAlkCharacter::InputTurnRate(float const Rate) {
-  auto world = GetWorld();
-  if (world && Rate != 0.0f) AddControllerYawInput(
-    Rate * AlkTurnRateDegPerSec * world->GetDeltaSeconds());
+  downcast_mut(impl).InputTurnRate(Rate);
 }
 
 void AAlkCharacter::InputLookRate(float const Rate) {
-  auto world = GetWorld();
-  if (world && Rate != 0.0f) AddControllerPitchInput(
-    Rate * AlkLookRateDegPerSec * world->GetDeltaSeconds());
+  downcast_mut(impl).InputLookRate(Rate);
 }
 
 void AAlkCharacter::InputRotateDragDisable() {
-  bRotateDragEnabled = false;
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this,
-      FString(TEXT("InputRotateDragDisable()")));
+  downcast_mut(impl).InputRotateDragDisable();
 }
 
 void AAlkCharacter::InputRotateDragEnable() {
-  bRotateDragEnabled = true;
-  // !!! update whenever dragging starts in case the viewport changed
-  UpdateViewportState();
-  UpdateViewportMousePositionReturnDelta();
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this,
-      FString(TEXT("InputRotateDragEnable()")));
+  downcast_mut(impl).InputRotateDragEnable();
 }
 
 void AAlkCharacter::InputMouseAxis(float const Value) {
-  if (Value == 0.f)
-    return;
-  // !!! we are not using the passed in Value because it is inconsistent
-  // !!! due to project settings: input axis mapping scale, FOVScaling
-  auto const mousePos = UpdateViewportMousePositionReturnDelta();
-  if (AlkHolding)
-    AlkOnHoldMove(FVector(mousePos.X, mousePos.Y, 0));
-  if (HoldMeasuring)
-    StopHoldMeasuring();
-  if (bRotateDragEnabled)
-    RotateDrag(mousePos);
+  downcast_mut(impl).InputMouseAxis(Value);
 }
 
 void AAlkCharacter::InputSnapMoveBackward() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapMoveBackward();
 }
 
 void AAlkCharacter::InputSnapMoveForward() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapMoveForward();
 }
 
 void AAlkCharacter::InputSnapMoveLeft() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapMoveLeft();
 }
 
 void AAlkCharacter::InputSnapMoveRight() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapMoveRight();
 }
 
 void AAlkCharacter::InputSnapTurnBack() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapTurnBack();
 }
 
 void AAlkCharacter::InputSnapTurnLeft() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapTurnLeft();
 }
 
 void AAlkCharacter::InputSnapTurnRight() {
-  // TODO: ### IMPLEMENT
+  downcast_mut(impl).InputSnapTurnRight();
 }
 
 void AAlkCharacter::InputTouchDragged(
   ETouchIndex::Type const FingerIndex,
   FVector const Location
 ) {
-  if (FingerIndex > ETouchIndex::MAX_TOUCHES)
-    return; // TODO: @@@ LOG FAILURE
-  FVector const deltaLoc = Location
-    - TouchFingerStates[FingerIndex].Location;
-  TouchFingerStates[FingerIndex].Location = Location;
-  if (deltaLoc.X == 0.f && deltaLoc.Y == 0.f)
-    return;
-  if (FingerIndex == FingerIndexFire) {
-    if (AlkHolding)
-      AlkOnHoldMove(Location);
-    else if (HoldMeasuring)
-      StopHoldMeasuring();
-  }
-  if (FingerIndex == FingerIndexRotate) {
-    if (!TouchFingerStates[FingerIndex].bDragged)
-      // !!! update whenever dragging starts in case the viewport changed
-      UpdateViewportState();
-    else
-      TouchFingerStates[FingerIndex].bDragged = true;
-    RotateDrag(FVector2D(deltaLoc.X, deltaLoc.Y));
-  }
+  downcast_mut(impl).InputTouchDragged(FingerIndex, Location);
 }
 
 void AAlkCharacter::InputTouchPressed(
   ETouchIndex::Type const FingerIndex,
   FVector const Location
 ) {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchPressed(...)")));
-  if (FingerIndex > ETouchIndex::MAX_TOUCHES)
-    return; // TODO: @@@ LOG FAILURE
-  if (TouchFingerStates[FingerIndex].bPressed)
-    return; // TODO: @@@ LOG FAILURE
-  TouchFingerStates[FingerIndex].Location = Location;
-  TouchFingerStates[FingerIndex].bDragged = false;
-  TouchFingerStates[FingerIndex].bPressed = true;
-  TouchFingerStates[FingerIndex].PressedRealTimeSeconds =
-    pure::WorldRealTimeSeconds(GetWorld());
-  if (FingerIndex == FingerIndexFire)
-    StartHoldMeasuring();
+  downcast_mut(impl).InputTouchPressed(FingerIndex, Location);
 }
 
 void AAlkCharacter::InputTouchReleased(
   ETouchIndex::Type const FingerIndex,
   FVector const Location
 ) {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchReleased(...)")));
-  if (FingerIndex > ETouchIndex::MAX_TOUCHES)
-    return; // TODO: @@@ LOG FAILURE
-  if (!TouchFingerStates[FingerIndex].bPressed)
-    return; // TODO: @@@ LOG FAILURE
-  TouchFingerStates[FingerIndex].Location = Location;
-  TouchFingerStates[FingerIndex].bPressed = false;
-  // TODO: @@@ ProjectSettings> Engine> Input> Mouse Properties>
-  //       @@@ Use Mouse for Touch [x] will always generate InputTouchDragged
-  //if (!TouchFingerStates[FingerIndex].bDragged &&
-  if (FingerIndex == FingerIndexFire) {
-    StopHoldMeasuring();
-    if (AlkHolding)
-      LeaveHolding(Location);
-  }
-  if (pure::WorldRealTimeSeconds(GetWorld())
-        - TouchFingerStates[FingerIndex].PressedRealTimeSeconds
-      < AlkInputHoldThresholdSeconds)
-    InputTouchTapped(FingerIndex, Location);
+  downcast_mut(impl).InputTouchReleased(FingerIndex, Location);
 }
 
-void AAlkCharacter::InputTouchTapped(
-  ETouchIndex::Type const FingerIndex,
-  FVector const Location
-) {
-  if (AlkTracing)
-    UKismetSystemLibrary::PrintString(this, FString(TEXT("InputTouchTapped(...)")));
-  if (FingerIndex == FingerIndexFire)
-    AlkOnFire(Location);
-}
-
-void AAlkCharacter::RotateDrag(FVector2D const & deltaPos) {
-  if (   (deltaPos.X != 0 || deltaPos.Y != 0)
-      && (ViewportSize.X > 0.f)
-      && (ViewportSize.Y > 0.f)) {
-    auto const vpRatio = deltaPos / ViewportSize;
-    auto const degrees = vpRatio * AlkInputDragDegPerViewport;
-    if (degrees.X != 0.f)
-      AddControllerYawInput(degrees.X);
-        // !!! ^ UE PlayerController applies InputYawScale
-    if (degrees.Y != 0.f)
-      AddControllerPitchInput(degrees.Y);
-        // !!! ^ UE PlayerController applies InputPitchScale
-    if (AlkTracing)
-      UKismetSystemLibrary::PrintString(this,
-        FString::Printf(TEXT("RotateDrag((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
-          deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
-  }
-}
+AAlkCharacter::Impl::~Impl() {}
