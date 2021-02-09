@@ -38,7 +38,9 @@ public:
 
 public: // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
-    FVector2D AlkInputDragDegPerViewport;
+    FVector AlkInputDragMoveMetersPerViewport;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    FVector AlkInputDragTurnDegreesPerViewport;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)

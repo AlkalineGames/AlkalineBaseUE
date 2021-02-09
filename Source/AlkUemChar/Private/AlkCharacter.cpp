@@ -222,13 +222,13 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       return;
     // !!! we are not using the passed in Value because it is inconsistent
     // !!! due to project settings: input axis mapping scale, FOVScaling
-    auto const mousePos = UpdateViewportMousePositionReturnDelta();
+    auto const posDelta = UpdateViewportMousePositionReturnDelta();
     if (face.AlkHolding)
-      face_mut.AlkOnHoldMove(FVector(mousePos.X, mousePos.Y, 0));
+      face_mut.AlkOnHoldMove(FVector(posDelta.X, posDelta.Y, 0));
     if (HoldMeasuring)
       StopHoldMeasuring();
     if (bMouseTurningEnabled)
-      MouseTurning(mousePos);
+      DragTurnByViewportDelta(posDelta);
   }
 
   void InputSnapMoveBackward() {
@@ -265,10 +265,10 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   ) {
     if (FingerIndex > ETouchIndex::MAX_TOUCHES)
       return; // TODO: @@@ LOG FAILURE
-    FVector const deltaLoc = Location
+    FVector const locDelta = Location
       - TouchFingerStates[FingerIndex].Location;
     TouchFingerStates[FingerIndex].Location = Location;
-    if (deltaLoc.X == 0.f && deltaLoc.Y == 0.f)
+    if (locDelta.X == 0.f && locDelta.Y == 0.f)
       return;
     if (FingerIndex == FingerIndexFire) {
       if (face.AlkHolding)
@@ -282,7 +282,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
         UpdateViewportState();
       else
         TouchFingerStates[FingerIndex].bDragged = true;
-      MouseTurning(FVector2D(deltaLoc.X, deltaLoc.Y));
+      DragTurnByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
     }
   }
 
@@ -341,12 +341,13 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       face_mut.AlkOnFire(Location);
   }
 
-  void MouseTurning(FVector2D const & deltaPos) {
+  void DragTurnByViewportDelta(FVector2D const & deltaPos) {
     if (   (deltaPos.X != 0 || deltaPos.Y != 0)
         && (ViewportSize.X > 0.f)
         && (ViewportSize.Y > 0.f)) {
       auto const vpRatio = deltaPos / ViewportSize;
-      auto const degrees = vpRatio * face.AlkInputDragDegPerViewport;
+      auto const degrees = FVector(vpRatio.X, vpRatio.Y, 0.f) *
+        face.AlkInputDragTurnDegreesPerViewport;
       if (degrees.X != 0.f)
         face_mut.AddControllerYawInput(degrees.X);
           // !!! ^ UE PlayerController applies InputYawScale
@@ -355,7 +356,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
           // !!! ^ UE PlayerController applies InputPitchScale
       if (face.AlkTracing)
         UKismetSystemLibrary::PrintString(&face_mut,
-        FString::Printf(TEXT("MouseTurning((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
+        FString::Printf(TEXT("TurnByViewportDelta((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
           deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
     }
   }
@@ -433,7 +434,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
     AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
   }
   // blueprintables
-  AlkInputDragDegPerViewport = FVector2D(360.f, 144.f);
+  AlkInputDragTurnDegreesPerViewport = FVector(360.f, 144.f, 0.f);
     // !!! ^ account for the UE PlayerController values of
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
