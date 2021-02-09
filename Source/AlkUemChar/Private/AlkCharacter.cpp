@@ -19,6 +19,7 @@ constexpr int HMDUpdateFrequencySeconds = 1.f;
 
 struct AAlkCharacterImpl: AAlkCharacter::Impl {
   int Options = 0;
+  bool bMouseMovingEnabled = false;
   bool bMouseTurningEnabled = false;
   struct HMDState {
     FRotator Orientation;
@@ -31,7 +32,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   bool HoldMeasuring = false;
   float HoldSeconds = 0.f;
   ETouchIndex::Type FingerIndexFire = ETouchIndex::Touch1;
-  ETouchIndex::Type FingerIndexRotate = ETouchIndex::Touch1;
+  ETouchIndex::Type FingerIndexMove = ETouchIndex::Touch2;
+  ETouchIndex::Type FingerIndexTurn = ETouchIndex::Touch1;
   struct TouchFingerState {
     ETouchIndex::Type FingerIndex = ETouchIndex::CursorPointerIndex;
     FVector Location = FVector::ZeroVector;
@@ -200,6 +202,23 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       Rate * face.AlkLookRateDegPerSec * world->GetDeltaSeconds());
   }
 
+  void InputMouseMovingDisable() {
+    bMouseMovingEnabled = false;
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputMouseMovingDisable()")));
+  }
+
+  void InputMouseMovingEnable() {
+    bMouseMovingEnabled = true;
+    // !!! update whenever enabled in case the viewport changed
+    UpdateViewportState();
+    UpdateViewportMousePositionReturnDelta();
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputMouseMovingEnable()")));
+  }
+
   void InputMouseTurningDisable() {
     bMouseTurningEnabled = false;
     if (face.AlkTracing)
@@ -209,7 +228,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void InputMouseTurningEnable() {
     bMouseTurningEnabled = true;
-    // !!! update whenever dragging starts in case the viewport changed
+    // !!! update whenever enabled in case the viewport changed
     UpdateViewportState();
     UpdateViewportMousePositionReturnDelta();
     if (face.AlkTracing)
@@ -227,6 +246,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       face_mut.AlkOnHoldMove(FVector(posDelta.X, posDelta.Y, 0));
     if (HoldMeasuring)
       StopHoldMeasuring();
+    if (bMouseMovingEnabled)
+      DragMoveByViewportDelta(posDelta);
     if (bMouseTurningEnabled)
       DragTurnByViewportDelta(posDelta);
   }
@@ -276,7 +297,18 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       else if (HoldMeasuring)
         StopHoldMeasuring();
     }
-    if (FingerIndex == FingerIndexRotate) {
+    if (FingerIndex == FingerIndexMove) {
+      if (!TouchFingerStates[FingerIndex].bDragged)
+        // !!! update whenever dragging starts in case the viewport changed
+        UpdateViewportState();
+      else
+        TouchFingerStates[FingerIndex].bDragged = true;
+      DragMoveByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
+    }
+    // TODO: ### GENERALIZE FINGER EXCLUSION LOGIC BECAUSE WE
+    //       ### RECEIVE SEPARATE CALLS FOR ALL FINGERS PRESSED
+    if (FingerIndex == FingerIndexTurn
+        && !TouchFingerStates[FingerIndexMove].bPressed) {
       if (!TouchFingerStates[FingerIndex].bDragged)
         // !!! update whenever dragging starts in case the viewport changed
         UpdateViewportState();
@@ -320,9 +352,9 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     // TODO: @@@ ProjectSettings> Engine> Input> Mouse Properties>
     //       @@@ Use Mouse for Touch [x] will always generate InputTouchDragged
     //if (!TouchFingerStates[FingerIndex].bDragged &&
-      if (FingerIndex == FingerIndexFire) {
-        StopHoldMeasuring();
-        if (face.AlkHolding)
+    if (FingerIndex == FingerIndexFire) {
+      StopHoldMeasuring();
+      if (face.AlkHolding)
         LeaveHolding(Location);
     }
     if (pure::WorldRealTimeSeconds(face.GetWorld())
@@ -337,8 +369,26 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   ) {
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputTouchTapped(...)")));
-      if (FingerIndex == FingerIndexFire)
+    if (FingerIndex == FingerIndexFire)
       face_mut.AlkOnFire(Location);
+  }
+
+  void DragMoveByViewportDelta(FVector2D const & deltaPos) {
+    if (   (deltaPos.X != 0 || deltaPos.Y != 0)
+        && (ViewportSize.X > 0.f)
+        && (ViewportSize.Y > 0.f)) {
+      auto const vpRatio = deltaPos / ViewportSize;
+      auto const meters = FVector(vpRatio.X, vpRatio.Y, 0.f) *
+        face.AlkInputDragMoveMetersPerViewport;
+      if (meters.X != 0.f)
+        InputMoveRight(meters.X * 100.f);
+      if (meters.Y != 0.f)
+        InputMoveForward(meters.Y * -100.f);
+      if (face.AlkTracing)
+        UKismetSystemLibrary::PrintString(&face_mut,
+          FString::Printf(TEXT("DragMoveByViewportDelta((%f,%f)): vpRatio (%f,%f), meters (%f,%f)"),
+            deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, meters.X, meters.Y));
+    }
   }
 
   void DragTurnByViewportDelta(FVector2D const & deltaPos) {
@@ -356,8 +406,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
           // !!! ^ UE PlayerController applies InputPitchScale
       if (face.AlkTracing)
         UKismetSystemLibrary::PrintString(&face_mut,
-        FString::Printf(TEXT("TurnByViewportDelta((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
-          deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
+          FString::Printf(TEXT("DragTurnByViewportDelta((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
+            deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
     }
   }
 
@@ -434,6 +484,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
     AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
   }
   // blueprintables
+  AlkInputDragMoveMetersPerViewport = FVector(10.f, 10.f, 10.f);
   AlkInputDragTurnDegreesPerViewport = FVector(360.f, 144.f, 0.f);
     // !!! ^ account for the UE PlayerController values of
     // !!! InputYawScale (default 2.5) and
@@ -470,6 +521,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
   PlayerInputComponent->BindAction("AlkSnapTurnLeft", IE_Pressed, this, &AAlkCharacter::InputSnapTurnLeft);
   PlayerInputComponent->BindAction("AlkSnapTurnRight", IE_Pressed, this, &AAlkCharacter::InputSnapTurnRight);
 
+  PlayerInputComponent->BindAction("AlkMouseMoving", IE_Pressed, this, &AAlkCharacter::InputMouseMovingEnable);
+  PlayerInputComponent->BindAction("AlkMouseMoving", IE_Released, this, &AAlkCharacter::InputMouseMovingDisable);
   PlayerInputComponent->BindAction("AlkMouseTurning", IE_Pressed, this, &AAlkCharacter::InputMouseTurningEnable);
   PlayerInputComponent->BindAction("AlkMouseTurning", IE_Released, this, &AAlkCharacter::InputMouseTurningDisable);
   PlayerInputComponent->BindAxis("AlkMouseX", this, &AAlkCharacter::InputMouseAxis);
@@ -594,6 +647,14 @@ void AAlkCharacter::InputTurnRate(float const Rate) {
 
 void AAlkCharacter::InputLookRate(float const Rate) {
   downcast_mut(impl).InputLookRate(Rate);
+}
+
+void AAlkCharacter::InputMouseMovingDisable() {
+  downcast_mut(impl).InputMouseMovingDisable();
+}
+
+void AAlkCharacter::InputMouseMovingEnable() {
+  downcast_mut(impl).InputMouseMovingEnable();
 }
 
 void AAlkCharacter::InputMouseTurningDisable() {
