@@ -19,7 +19,7 @@ constexpr int HMDUpdateFrequencySeconds = 1.f;
 
 struct AAlkCharacterImpl: AAlkCharacter::Impl {
   int Options = 0;
-  bool bRotateDragEnabled = false;
+  bool bMouseTurningEnabled = false;
   struct HMDState {
     FRotator Orientation;
     FVector Position;
@@ -200,21 +200,21 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       Rate * face.AlkLookRateDegPerSec * world->GetDeltaSeconds());
   }
 
-  void InputRotateDragDisable() {
-    bRotateDragEnabled = false;
+  void InputMouseTurningDisable() {
+    bMouseTurningEnabled = false;
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
-        FString(TEXT("InputRotateDragDisable()")));
+        FString(TEXT("InputMouseTurningDisable()")));
   }
 
-  void InputRotateDragEnable() {
-    bRotateDragEnabled = true;
+  void InputMouseTurningEnable() {
+    bMouseTurningEnabled = true;
     // !!! update whenever dragging starts in case the viewport changed
     UpdateViewportState();
     UpdateViewportMousePositionReturnDelta();
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
-        FString(TEXT("InputRotateDragEnable()")));
+        FString(TEXT("InputMouseTurningEnable()")));
   }
 
   void InputMouseAxis(float const Value) {
@@ -227,8 +227,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       face_mut.AlkOnHoldMove(FVector(mousePos.X, mousePos.Y, 0));
     if (HoldMeasuring)
       StopHoldMeasuring();
-    if (bRotateDragEnabled)
-      RotateDrag(mousePos);
+    if (bMouseTurningEnabled)
+      MouseTurning(mousePos);
   }
 
   void InputSnapMoveBackward() {
@@ -282,7 +282,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
         UpdateViewportState();
       else
         TouchFingerStates[FingerIndex].bDragged = true;
-      RotateDrag(FVector2D(deltaLoc.X, deltaLoc.Y));
+      MouseTurning(FVector2D(deltaLoc.X, deltaLoc.Y));
     }
   }
 
@@ -341,7 +341,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       face_mut.AlkOnFire(Location);
   }
 
-  void RotateDrag(FVector2D const & deltaPos) {
+  void MouseTurning(FVector2D const & deltaPos) {
     if (   (deltaPos.X != 0 || deltaPos.Y != 0)
         && (ViewportSize.X > 0.f)
         && (ViewportSize.Y > 0.f)) {
@@ -355,7 +355,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
           // !!! ^ UE PlayerController applies InputPitchScale
       if (face.AlkTracing)
         UKismetSystemLibrary::PrintString(&face_mut,
-        FString::Printf(TEXT("RotateDrag((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
+        FString::Printf(TEXT("MouseTurning((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
           deltaPos.X, deltaPos.Y, vpRatio.X, vpRatio.Y, degrees.X, degrees.Y));
     }
   }
@@ -469,8 +469,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
   PlayerInputComponent->BindAction("AlkSnapTurnLeft", IE_Pressed, this, &AAlkCharacter::InputSnapTurnLeft);
   PlayerInputComponent->BindAction("AlkSnapTurnRight", IE_Pressed, this, &AAlkCharacter::InputSnapTurnRight);
 
-  PlayerInputComponent->BindAction("AlkRotateDragWhile", IE_Pressed, this, &AAlkCharacter::InputRotateDragEnable);
-  PlayerInputComponent->BindAction("AlkRotateDragWhile", IE_Released, this, &AAlkCharacter::InputRotateDragDisable);
+  PlayerInputComponent->BindAction("AlkMouseTurning", IE_Pressed, this, &AAlkCharacter::InputMouseTurningEnable);
+  PlayerInputComponent->BindAction("AlkMouseTurning", IE_Released, this, &AAlkCharacter::InputMouseTurningDisable);
   PlayerInputComponent->BindAxis("AlkMouseX", this, &AAlkCharacter::InputMouseAxis);
   PlayerInputComponent->BindAxis("AlkMouseY", this, &AAlkCharacter::InputMouseAxis);
 
@@ -595,12 +595,12 @@ void AAlkCharacter::InputLookRate(float const Rate) {
   downcast_mut(impl).InputLookRate(Rate);
 }
 
-void AAlkCharacter::InputRotateDragDisable() {
-  downcast_mut(impl).InputRotateDragDisable();
+void AAlkCharacter::InputMouseTurningDisable() {
+  downcast_mut(impl).InputMouseTurningDisable();
 }
 
-void AAlkCharacter::InputRotateDragEnable() {
-  downcast_mut(impl).InputRotateDragEnable();
+void AAlkCharacter::InputMouseTurningEnable() {
+  downcast_mut(impl).InputMouseTurningEnable();
 }
 
 void AAlkCharacter::InputMouseAxis(float const Value) {

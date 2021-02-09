@@ -115,8 +115,8 @@ private:
   void InputTurnRate(float const);
   void InputLookRate(float const);
 
-  void InputRotateDragDisable();
-  void InputRotateDragEnable();
+  void InputMouseTurningDisable();
+  void InputMouseTurningEnable();
   void InputMouseAxis(float const);
 
   void InputSnapMoveBackward();
