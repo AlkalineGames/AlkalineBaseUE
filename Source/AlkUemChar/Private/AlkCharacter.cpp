@@ -33,6 +33,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   float HoldSeconds = 0.f;
   ETouchIndex::Type FingerIndexFire = ETouchIndex::Touch1;
   ETouchIndex::Type FingerIndexMove = ETouchIndex::Touch2;
+  ETouchIndex::Type FingerIndexMoveOnly = ETouchIndex::Touch3;
   ETouchIndex::Type FingerIndexTurn = ETouchIndex::Touch1;
   struct TouchFingerState {
     ETouchIndex::Type FingerIndex = ETouchIndex::CursorPointerIndex;
@@ -246,9 +247,11 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       face_mut.AlkOnHoldMove(FVector(posDelta.X, posDelta.Y, 0));
     if (HoldMeasuring)
       StopHoldMeasuring();
-    if (bMouseMovingEnabled)
+    if (bMouseMovingEnabled) {
       DragMoveByViewportDelta(posDelta);
-    if (bMouseTurningEnabled)
+      if (bMouseTurningEnabled)
+        DragTurnByViewportDelta(FVector2D(posDelta.X, 0.f));
+    } else if (bMouseTurningEnabled)
       DragTurnByViewportDelta(posDelta);
   }
 
@@ -297,24 +300,22 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       else if (HoldMeasuring)
         StopHoldMeasuring();
     }
-    if (FingerIndex == FingerIndexMove) {
-      if (!TouchFingerStates[FingerIndex].bDragged)
-        // !!! update whenever dragging starts in case the viewport changed
-        UpdateViewportState();
-      else
-        TouchFingerStates[FingerIndex].bDragged = true;
-      DragMoveByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
-    }
+    if (!TouchFingerStates[FingerIndex].bDragged)
+      // !!! update whenever dragging starts in case the viewport changed
+      UpdateViewportState();
+    else
+      TouchFingerStates[FingerIndex].bDragged = true;
     // TODO: ### GENERALIZE FINGER EXCLUSION LOGIC BECAUSE WE
     //       ### RECEIVE SEPARATE CALLS FOR ALL FINGERS PRESSED
-    if (FingerIndex == FingerIndexTurn
-        && !TouchFingerStates[FingerIndexMove].bPressed) {
-      if (!TouchFingerStates[FingerIndex].bDragged)
-        // !!! update whenever dragging starts in case the viewport changed
-        UpdateViewportState();
+    if (FingerIndex == FingerIndexMove) { // TODO: ### assuming Touch2
+      DragMoveByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
+    }
+    if (FingerIndex == FingerIndexTurn // TODO: ### assuming Touch1
+        && !TouchFingerStates[FingerIndexMoveOnly].bPressed) { // TODO: ### assuming Touch3
+      if (TouchFingerStates[FingerIndexMove].bPressed)
+        DragTurnByViewportDelta(FVector2D(locDelta.X, 0.f));
       else
-        TouchFingerStates[FingerIndex].bDragged = true;
-      DragTurnByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
+        DragTurnByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
     }
   }
 
