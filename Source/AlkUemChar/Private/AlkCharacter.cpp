@@ -43,8 +43,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     float PressedRealTimeSeconds = 0.f;
   };
   struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
-  FVector2D ViewportSize;
   FVector2D ViewportDragThresholdRatio;
+  FVector2D ViewportDivisor;
   FVector2D ViewportMousePosition;
 
   AAlkCharacter const & face;
@@ -87,8 +87,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     HMDState.UpdateTotalSeconds += HMDState.UpdateDeltaSeconds;
     HMDState.UpdateDeltaSeconds = 0.f;
 #if 0 // TODO: @@@ SteamVR DOES NOT PROPERLY INDICATE WornState
-    static auto prevWornState = EHMDWornState::Unknown;
-    auto nextWornState = UHeadMountedDisplayFunctionLibrary::GetHMDWornState();
+    static auto const prevWornState = EHMDWornState::Unknown;
+    auto const nextWornState = UHeadMountedDisplayFunctionLibrary::GetHMDWornState();
     if (nextWornState != prevWornState) {
       prevWornState = nextWornState;
       bool worn = (nextWornState == EHMDWornState::Worn);
@@ -111,15 +111,17 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void UpdateViewportState() {
-    ViewportSize = pure::WorldGameViewportSize(face.GetWorld());
-    ViewportDragThresholdRatio =
+    auto const vpSize = pure::WorldGameViewportSize(face.GetWorld());
+    ViewportDivisor = (vpSize.X > vpSize.Y)
+      ?  FVector2D(vpSize.X, vpSize.X)
+      :  FVector2D(vpSize.Y, vpSize.Y);
+    ViewportDragThresholdRatio = // TODO: @@@ NOT YET USED
       FVector2D(face.AlkInputDragThresholdPixels,
                 face.AlkInputDragThresholdPixels)
-      / ViewportSize;
+      / vpSize;
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
-        FString::Printf(TEXT("ViewportSize(%f,%f)"),
-          ViewportSize.X, ViewportSize.Y));
+        FString::Printf(TEXT("viewport size %f x %f"), vpSize.X, vpSize.Y));
   }
 
   auto UpdateViewportMousePositionReturnDelta() -> FVector2D{
@@ -166,13 +168,13 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputRecenterXR() {
-    auto xrTrackingSystem = GEngine->XRSystem; // interface to HMD
+    auto const xrTrackingSystem = GEngine->XRSystem; // interface to HMD
     if (!xrTrackingSystem)
       return;
-    auto posBefore = xrTrackingSystem->GetBasePosition();
+    auto const posBefore = xrTrackingSystem->GetBasePosition();
     UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
       // !!! ^ in room scale, position Z will be offset to the floor
-    auto posAfter = xrTrackingSystem->GetBasePosition();
+    auto const posAfter = xrTrackingSystem->GetBasePosition();
     xrTrackingSystem->SetBasePosition(
       FVector(posAfter.X, posAfter.Y, posBefore.Z));
   }
@@ -192,13 +194,13 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputTurnRate(float const Rate) {
-    auto world = face.GetWorld();
+    auto const world = face.GetWorld();
     if (world && Rate != 0.0f) face_mut.AddControllerYawInput(
       Rate * face.AlkTurnRateDegPerSec * world->GetDeltaSeconds());
   }
 
   void InputLookRate(float const Rate) {
-    auto world = face.GetWorld();
+    auto const world = face.GetWorld();
     if (world && Rate != 0.0f) face_mut.AddControllerPitchInput(
       Rate * face.AlkLookRateDegPerSec * world->GetDeltaSeconds());
   }
@@ -376,9 +378,9 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void DragMoveByViewportDelta(FVector2D const & deltaPos) {
     if (   (deltaPos.X != 0 || deltaPos.Y != 0)
-        && (ViewportSize.X > 0.f)
-        && (ViewportSize.Y > 0.f)) {
-      auto const vpRatio = deltaPos / ViewportSize;
+        && (ViewportDivisor.X > 0.f)
+        && (ViewportDivisor.Y > 0.f)) {
+      auto const vpRatio = deltaPos / ViewportDivisor;
       auto const meters = FVector(vpRatio.X, vpRatio.Y, 0.f) *
         face.AlkInputDragMoveMetersPerViewport;
       if (meters.X != 0.f)
@@ -394,9 +396,9 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void DragTurnByViewportDelta(FVector2D const & deltaPos) {
     if (   (deltaPos.X != 0 || deltaPos.Y != 0)
-        && (ViewportSize.X > 0.f)
-        && (ViewportSize.Y > 0.f)) {
-      auto const vpRatio = deltaPos / ViewportSize;
+        && (ViewportDivisor.X > 0.f)
+        && (ViewportDivisor.Y > 0.f)) {
+      auto const vpRatio = deltaPos / ViewportDivisor;
       auto const degrees = FVector(vpRatio.X, vpRatio.Y, 0.f) *
         face.AlkInputDragTurnDegreesPerViewport;
       if (degrees.X != 0.f)
