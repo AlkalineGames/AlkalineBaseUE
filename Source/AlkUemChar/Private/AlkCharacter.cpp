@@ -154,17 +154,26 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   void InputFireOrHoldPressed() {
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputFireOrHold()")));
-    StartHoldMeasuring();
+    if (face.AlkHoldEnabled)
+      StartHoldMeasuring();
+    else // TODO: @@@ ASSUMING MOUSE, BUT WHAT ABOUT MOTIONCONTROLLERS?
+      face_mut.AlkOnFire(pure::VectorFromVector2D(
+        pure::WorldGameViewportMousePosition(face.GetWorld())));
   }
 
   void InputFireOrHoldReleased() {
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputFireOrHold()")));
-    StopHoldMeasuring();
-    if (!face.AlkHolding)
-      face_mut.AlkOnFire(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
-    else
-      LeaveHolding(FVector()); // TODO: ### WE DON'T HAVE SCREEN COORDINATES
+    if (face.AlkHoldEnabled) {
+      StopHoldMeasuring();
+      // TODO: @@@ ASSUMING MOUSE, BUT WHAT ABOUT MOTIONCONTROLLERS?
+      auto const screenCoordinates = pure::VectorFromVector2D(
+        pure::WorldGameViewportMousePosition(face.GetWorld()));
+      if (!face.AlkHolding)
+        face_mut.AlkOnFire(screenCoordinates);
+      else
+        LeaveHolding(screenCoordinates);
+    }
   }
 
   void InputRecenterXR() {
