@@ -42,7 +42,11 @@ public: // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     FVector AlkInputDragTurnDegreesPerViewport;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    int AlkFireRapidLimit;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    float AlkInputFireRapidThresholdSeconds;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputHoldThresholdSeconds;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
@@ -96,13 +100,16 @@ public: // blueprintables
     bool bAlkShootFromMotionControllerLeftNotRight;
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
-    void AlkOnFire(FVector const & ScreenCoordinates);
-    virtual void AlkOnFire_Implementation(FVector const & ScreenCoordinates);
+    void AlkOnFire(FVector const & ScreenCoordinates,
+      int RapidCount); // positive value when pressed, negative when released
+  virtual void AlkOnFire_Implementation(
+    FVector const & ScreenCoordinates, int RapidCount);
       // ^ calls AlkOnShoot() if has OPTION_CAN_SHOOT
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
     void AlkOnShoot(FVector const & ScreenCoordinates);
-    virtual void AlkOnShoot_Implementation(FVector const & ScreenCoordinates);
+  virtual void AlkOnShoot_Implementation(
+    FVector const & ScreenCoordinates);
       // ^ spawns projectile
 
   struct Impl { virtual ~Impl() = 0; };

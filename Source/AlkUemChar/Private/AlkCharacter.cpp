@@ -30,6 +30,10 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     bool Worn = false;
   };
   struct HMDState HMDState;
+  bool FireMeasuring = false;
+  int FireRapidCount = 0;
+  int FireRapidCurrent = 0;
+  float FireSeconds = 0.f;
   bool HoldMeasuring = false;
   float HoldSeconds = 0.f;
   ETouchIndex::Type FingerIndexFire = ETouchIndex::Touch1;
@@ -100,7 +104,12 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 #endif
   }
 
-  void UpdateHoldingState(float const DeltaSeconds) {
+  void UpdateInputState(float const DeltaSeconds) {
+    if (FireMeasuring) {
+      FireSeconds += DeltaSeconds;
+      if (FireSeconds >= face.AlkInputFireRapidThresholdSeconds)
+        StopFireMeasuring();
+    }
     if (HoldMeasuring) {
       HoldSeconds += DeltaSeconds;
       if (!face.AlkHolding && HoldSeconds >= face.AlkInputHoldThresholdSeconds) {
@@ -141,6 +150,20 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     face_mut.AlkOnHoldLeave(ScreenCoordinates);
   }
 
+  void KeepFireMeasuring() {
+    FireMeasuring = true;
+    MaintainFireMeasuring();
+  }
+
+  void MaintainFireMeasuring() {
+    FireSeconds = 0.f;
+  }
+
+  void StopFireMeasuring() {
+    FireMeasuring = false;
+    FireRapidCount = 0;
+  }
+
   void StartHoldMeasuring() {
     HoldMeasuring = true;
     HoldSeconds = 0.f;
@@ -151,29 +174,55 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     HoldSeconds = 0.f;
   }
 
-  void InputFireOrHoldPressed() {
-    if (face.AlkTracing)
-      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputFireOrHold()")));
+  void HandleFireOrHoldPressed(
+    FVector const & screenCoordinates
+  ) {
+    if (face.AlkFireRapidLimit > FireRapidCount)
+      KeepFireMeasuring();
+    else
+      StopFireMeasuring();
     if (face.AlkHoldEnabled)
       StartHoldMeasuring();
-    else // TODO: @@@ ASSUMING MOUSE, BUT WHAT ABOUT MOTIONCONTROLLERS?
-      face_mut.AlkOnFire(pure::VectorFromVector2D(
-        pure::WorldGameViewportMousePosition(face.GetWorld())));
+    else {
+      FireRapidCurrent = ++FireRapidCount;
+      face_mut.AlkOnFire(screenCoordinates, FireRapidCurrent);
+    }
+  }
+
+  void HandleFireOrHoldReleased(
+    FVector const & screenCoordinates
+  ) {
+    if (face.AlkFireRapidLimit > FireRapidCount)
+      MaintainFireMeasuring();
+    if (face.AlkHoldEnabled) {
+      StopHoldMeasuring();
+      if (!face.AlkHolding) {
+        FireRapidCurrent = ++FireRapidCount;
+        face_mut.AlkOnFire(screenCoordinates, ++FireRapidCurrent);
+      } else
+        LeaveHolding(screenCoordinates);
+    } else {
+      face_mut.AlkOnFire(screenCoordinates, - FireRapidCurrent);
+      FireRapidCurrent = 0;
+    }
+  }
+
+  void InputFireOrHoldPressed() {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputFireOrHoldPressed()")));
+    HandleFireOrHoldPressed(pure::VectorFromVector2D(
+      // TODO: @@@ ASSUMING MOUSE, BUT WHAT ABOUT MOTIONCONTROLLERS?
+      pure::WorldGameViewportMousePosition(face.GetWorld())));
   }
 
   void InputFireOrHoldReleased() {
     if (face.AlkTracing)
-      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputFireOrHold()")));
-    if (face.AlkHoldEnabled) {
-      StopHoldMeasuring();
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputFireOrHoldReleased()")));
+    HandleFireOrHoldReleased(pure::VectorFromVector2D(
       // TODO: @@@ ASSUMING MOUSE, BUT WHAT ABOUT MOTIONCONTROLLERS?
-      auto const screenCoordinates = pure::VectorFromVector2D(
-        pure::WorldGameViewportMousePosition(face.GetWorld()));
-      if (!face.AlkHolding)
-        face_mut.AlkOnFire(screenCoordinates);
-      else
-        LeaveHolding(screenCoordinates);
-    }
+      pure::WorldGameViewportMousePosition(face.GetWorld())));
   }
 
   void InputRecenterXR() {
@@ -346,7 +395,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     TouchFingerStates[FingerIndex].PressedRealTimeSeconds =
       pure::WorldRealTimeSeconds(face.GetWorld());
     if (FingerIndex == FingerIndexFire)
-      StartHoldMeasuring();
+      HandleFireOrHoldPressed(Location);
   }
 
   void InputTouchReleased(
@@ -361,28 +410,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       return; // TODO: @@@ LOG FAILURE
     TouchFingerStates[FingerIndex].Location = Location;
     TouchFingerStates[FingerIndex].bPressed = false;
-    // TODO: @@@ ProjectSettings> Engine> Input> Mouse Properties>
-    //       @@@ Use Mouse for Touch [x] will always generate InputTouchDragged
-    //if (!TouchFingerStates[FingerIndex].bDragged &&
-    if (FingerIndex == FingerIndexFire) {
-      StopHoldMeasuring();
-      if (face.AlkHolding)
-        LeaveHolding(Location);
-    }
-    if (pure::WorldRealTimeSeconds(face.GetWorld())
-          - TouchFingerStates[FingerIndex].PressedRealTimeSeconds
-        < face.AlkInputHoldThresholdSeconds)
-      InputTouchTapped(FingerIndex, Location);
-  }
-
-  void InputTouchTapped(
-    ETouchIndex::Type const FingerIndex,
-    FVector const Location
-  ) {
-    if (face.AlkTracing)
-      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputTouchTapped(...)")));
     if (FingerIndex == FingerIndexFire)
-      face_mut.AlkOnFire(Location);
+      HandleFireOrHoldReleased(Location);
   }
 
   void DragMoveByViewportDelta(FVector2D const & deltaPos) {
@@ -496,16 +525,17 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
     AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
   }
   // blueprintables
+  AlkFireRapidLimit = 0.f;
   AlkInputDragMoveMetersPerViewport = FVector(10.f, 10.f, 10.f);
   AlkInputDragTurnDegreesPerViewport = FVector(360.f, 144.f, 0.f);
     // !!! ^ account for the UE PlayerController values of
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
   AlkInputDragThresholdPixels = 4.f;
+  AlkInputFireRapidThresholdSeconds = 0.2f;
   AlkInputHoldThresholdSeconds = 0.3f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
-  AlkTracing = false;
 }
 
 void AAlkCharacter::SetupPlayerInputComponent(
@@ -556,7 +586,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
 void AAlkCharacter::Tick(float DeltaSeconds) {
   Super::Tick(DeltaSeconds);
   downcast_mut(impl).UpdateHMDState(DeltaSeconds);
-  downcast_mut(impl).UpdateHoldingState(DeltaSeconds);
+  downcast_mut(impl).UpdateInputState(DeltaSeconds);
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES
@@ -624,7 +654,8 @@ void AAlkCharacter::AlkOnShoot_Implementation(
 }
 
 void AAlkCharacter::AlkOnFire_Implementation(
-  FVector const & ScreenCoordinates
+  FVector const & ScreenCoordinates,
+  int RapidCount
 ) {
   if (AlkTracing)
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnFire_Implementation(...)")));
