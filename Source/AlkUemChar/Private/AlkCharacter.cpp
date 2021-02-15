@@ -13,6 +13,7 @@
 #include "Kismet/KismetSystemLibrary.h" // for PrintString(...)
 //#include "VRNotificationsComponent.h"
 
+#include "AlkPureMath.h"
 #include "AlkPureWorld.h"
 
 constexpr int HMDUpdateFrequencySeconds = 1.f;
@@ -103,9 +104,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     if (HoldMeasuring) {
       HoldSeconds += DeltaSeconds;
       if (!face.AlkHolding && HoldSeconds >= face.AlkInputHoldThresholdSeconds) {
-        auto const mousePos = UpdateViewportMousePositionReturnDelta();
-        EnterHolding(FVector(mousePos.X, mousePos.Y, 0));
-          // TODO: ^ ### ASSUMING MOUSE
+        EnterHolding(pure::VectorFromVector2D( // TODO: ### ASSUMING MOUSE
+          UpdateViewportMousePositionReturnDelta()));
       }
     }
   }
@@ -246,7 +246,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     // !!! due to project settings: input axis mapping scale, FOVScaling
     auto const posDelta = UpdateViewportMousePositionReturnDelta();
     if (face.AlkHolding)
-      face_mut.AlkOnHoldMove(FVector(posDelta.X, posDelta.Y, 0));
+      face_mut.AlkOnHoldMove(pure::VectorFromVector2D(posDelta));
     if (HoldMeasuring)
       StopHoldMeasuring();
     if (bMouseMovingEnabled) {
@@ -310,14 +310,14 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     // TODO: ### GENERALIZE FINGER EXCLUSION LOGIC BECAUSE WE
     //       ### RECEIVE SEPARATE CALLS FOR ALL FINGERS PRESSED
     if (FingerIndex == FingerIndexMove) { // TODO: ### assuming Touch2
-      DragMoveByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
+      DragMoveByViewportDelta(pure::Vector2DFromVector(locDelta));
     }
     if (FingerIndex == FingerIndexTurn // TODO: ### assuming Touch1
         && !TouchFingerStates[FingerIndexMoveOnly].bPressed) { // TODO: ### assuming Touch3
       if (TouchFingerStates[FingerIndexMove].bPressed)
         DragTurnByViewportDelta(FVector2D(locDelta.X, 0.f));
       else
-        DragTurnByViewportDelta(FVector2D(locDelta.X, locDelta.Y));
+        DragTurnByViewportDelta(pure::Vector2DFromVector(locDelta));
     }
   }
 
@@ -381,7 +381,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
         && (ViewportDivisor.X > 0.f)
         && (ViewportDivisor.Y > 0.f)) {
       auto const vpRatio = deltaPos / ViewportDivisor;
-      auto const meters = FVector(vpRatio.X, vpRatio.Y, 0.f) *
+      auto const meters = pure::VectorFromVector2D(vpRatio) *
         face.AlkInputDragMoveMetersPerViewport;
       if (meters.X != 0.f)
         InputMoveRight(meters.X * 100.f);
@@ -399,7 +399,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
         && (ViewportDivisor.X > 0.f)
         && (ViewportDivisor.Y > 0.f)) {
       auto const vpRatio = deltaPos / ViewportDivisor;
-      auto const degrees = FVector(vpRatio.X, vpRatio.Y, 0.f) *
+      auto const degrees = pure::VectorFromVector2D(vpRatio) *
         face.AlkInputDragTurnDegreesPerViewport;
       if (degrees.X != 0.f)
         face_mut.AddControllerYawInput(degrees.X);
