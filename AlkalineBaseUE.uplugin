@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
   "Version": 0.1,
-  "VersionName": "0.1-ue4212",
+  "VersionName": "0.1-ue4272",
   "FriendlyName": "AlkalineBaseUE",
   "Description": "Alkaline Games Base for Unreal Engine",
   "Category": "Games",
@@ -10,7 +10,7 @@
   "DocsURL": "",
   "MarketplaceURL": "",
   "SupportURL": "",
-  "EngineVersion": "4.21.0",
+  "EngineVersion": "4.27.0",
   "EnabledByDefault": true,
   "CanContainContent": true,
   "IsBetaVersion": true,
