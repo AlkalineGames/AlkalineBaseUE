@@ -9,5 +9,6 @@
 **/Saved/Config/*
 !**/Saved/Config/Windows/
 **/.~lock*
+**/.DS_Store
 **/.vs
 **/*.swp
