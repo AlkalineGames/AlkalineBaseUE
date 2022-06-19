@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+  <gradleProperties>
+<!--
+    UE 4.27.2 fails with more recent versions of Android SDK build tools
+-->
+    <insert>
+BUILD_TOOLS_VERSION=28.0.3
+    </insert>
+  </gradleProperties>
+</root>
