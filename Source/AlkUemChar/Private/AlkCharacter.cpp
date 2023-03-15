@@ -1,4 +1,4 @@
-// Copyright 2015-2021 Alkaline Games, LLC.
+// Copyright 2015-2023 Alkaline Games, LLC.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,8 @@
 #include "IXRTrackingSystem.h"
 #include "Kismet/KismetSystemLibrary.h" // for PrintString(...)
 //#include "VRNotificationsComponent.h"
+
+#include "GripMotionControllerComponent.h"
 
 #include "AlkPureMath.h"
 #include "AlkPureWorld.h"
@@ -516,8 +518,12 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
 #endif
 
   if (HasAnyOptions(OPTION_CAN_SHOOT)) {
-    AlkNodeShootMotionControllerL = CreateDefaultSubobject<USceneComponent>(TEXT("AlkNodeShootMotionControllerL"));
-    AlkNodeShootMotionControllerR = CreateDefaultSubobject<USceneComponent>(TEXT("AlkNodeShootMotionControllerR"));
+    AlkNodeShootMotionControllerL =
+      CreateDefaultSubobject<UGripMotionControllerComponent>(
+        TEXT("AlkNodeShootMotionControllerL"));
+    AlkNodeShootMotionControllerR =
+      CreateDefaultSubobject<UGripMotionControllerComponent>(
+        TEXT("AlkNodeShootMotionControllerR"));
     if (LeftMotionController)
       AlkNodeShootMotionControllerL->SetupAttachment(LeftMotionController);
     if (RightMotionController)

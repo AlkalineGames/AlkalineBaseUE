@@ -1,4 +1,4 @@
-// Copyright 2015-2021 Alkaline Games, LLC.
+// Copyright 2015-2023 Alkaline Games, LLC.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -91,9 +91,9 @@ public: // blueprintables
   UPROPERTY(VisibleDefaultsOnly, Category = AlkCharacter)
     class USceneComponent* AlkNodeShootDefault;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
-    class USceneComponent* AlkNodeShootMotionControllerL;
+    TObjectPtr<UGripMotionControllerComponent> AlkNodeShootMotionControllerL;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
-    class USceneComponent* AlkNodeShootMotionControllerR;
+    TObjectPtr<UGripMotionControllerComponent> AlkNodeShootMotionControllerR;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     FVector AlkShootOffset;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
