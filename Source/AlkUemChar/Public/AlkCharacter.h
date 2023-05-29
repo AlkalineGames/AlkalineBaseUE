@@ -49,9 +49,9 @@ public: // blueprintables
     float AlkInputFireRapidThresholdSeconds;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputHoldThresholdSeconds;
-  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
     float AlkLookRateDegPerSec;
-  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
     float AlkTurnRateDegPerSec;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkHoldEnabled;
@@ -59,6 +59,10 @@ public: // blueprintables
     bool AlkHolding;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    bool AlkIsMouseOverClient;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
+    FVector2D AlkViewportMousePosition;
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
     void AlkOnHoldEnter(FVector const & ScreenCoordinates);

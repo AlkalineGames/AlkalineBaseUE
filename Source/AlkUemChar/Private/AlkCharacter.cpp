@@ -52,9 +52,6 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
   FVector2D ViewportDragThresholdRatio;
   FVector2D ViewportDivisor;
-  FVector2D ViewportMousePosition;
-  FVector2D PcMousePosition;
-  bool PcMousePositionPreserved = false;
 
   AAlkCharacter const & face;
   AAlkCharacter & face_mut;
@@ -138,25 +135,22 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   auto UpdateViewportMousePositionReturnDelta() -> FVector2D{
+    face_mut.AlkIsMouseOverClient = pure::WorldGameViewportIsMouseOverClient(face.GetWorld());
     auto const mousePos = pure::WorldGameViewportMousePosition(face.GetWorld());
-    auto const deltaPos = mousePos - ViewportMousePosition;
-    ViewportMousePosition = mousePos;
+    auto const deltaPos = mousePos - face.AlkViewportMousePosition;
+    face_mut.AlkViewportMousePosition = mousePos;
     return deltaPos;
   }
 
-  void PreservePcMousePosition() {
-    auto const pc = face.GetLocalViewingPlayerController();
-    if (pc) {
-      pc->GetMousePosition(PcMousePosition.X, PcMousePosition.Y);
-      PcMousePositionPreserved = true;
-    }
+  void UndoMouseDeltaPosition(FVector2D deltaPos) {
+    SetMousePosition(face.AlkViewportMousePosition - deltaPos);
   }
 
-  void RestorePcMousePosition() {
-    if (PcMousePositionPreserved) {
-      auto const pc = face.GetLocalViewingPlayerController();
-      if (pc)
-        pc->SetMouseLocation(PcMousePosition.X, PcMousePosition.Y);
+  void SetMousePosition(FVector2D pos) {
+    auto const pc = face.GetLocalViewingPlayerController();
+    if (pc) {
+      pc->SetMouseLocation(pos.X, pos.Y);
+      UpdateViewportMousePositionReturnDelta();
     }
   }
 
@@ -331,14 +325,11 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       DragMoveByViewportDelta(deltaPos);
       if (bMouseTurningEnabled)
         DragTurnByViewportDelta(FVector2D(deltaPos.X, 0.f));
-      ViewportMousePosition = ViewportMousePosition - deltaPos;
-      RestorePcMousePosition(); // !!! absorb mouse change
+      UndoMouseDeltaPosition(deltaPos);
     } else if (bMouseTurningEnabled) {
       DragTurnByViewportDelta(deltaPos);
-      ViewportMousePosition = ViewportMousePosition - deltaPos;
-      RestorePcMousePosition(); // !!! absorb mouse change
-    } else
-      PreservePcMousePosition();
+      UndoMouseDeltaPosition(deltaPos);
+    }
   }
 
   void InputSnapMoveBackward() {
