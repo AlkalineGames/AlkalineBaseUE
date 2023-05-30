@@ -142,6 +142,15 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     return deltaPos;
   }
 
+  void UpdatePointerWorldFromViewport(FVector2D vpPos) {
+    auto const pc = face.GetLocalViewingPlayerController();
+    if (pc) {
+      FVector worldPos;
+      pc->DeprojectScreenPositionToWorld(
+        vpPos.X, vpPos.Y, worldPos, face_mut.AlkPointerWorldDirection);
+    }
+  }
+
   void UndoMouseDeltaPosition(FVector2D deltaPos) {
     SetMousePosition(ViewportMousePosition - deltaPos);
   }
@@ -330,14 +339,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       DragTurnByViewportDelta(deltaPos);
       UndoMouseDeltaPosition(deltaPos);
     }
-    if (pure::WorldGameViewportIsMouseOverClient(face.GetWorld())) {
-      auto const pc = face.GetLocalViewingPlayerController();
-      if (pc) {
-        FVector worldPos;
-        pc->DeprojectMousePositionToWorld(
-          worldPos, face_mut.AlkPointerWorldDirection);
-      }
-    }
+    if (pure::WorldGameViewportIsMouseOverClient(face.GetWorld()))
+      UpdatePointerWorldFromViewport(ViewportMousePosition);
   }
 
   void InputSnapMoveBackward() {
@@ -384,6 +387,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
         face_mut.AlkOnHoldMove(Location);
       else if (HoldMeasuring)
         StopHoldMeasuring();
+      UpdatePointerWorldFromViewport(
+        pure::Vector2DFromVector(Location));
     }
     if (!TouchFingerStates[FingerIndex].bDragged)
       // !!! update whenever dragging starts in case the viewport changed
@@ -419,8 +424,11 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     TouchFingerStates[FingerIndex].bPressed = true;
     TouchFingerStates[FingerIndex].PressedRealTimeSeconds =
       pure::WorldRealTimeSeconds(face.GetWorld());
-    if (FingerIndex == FingerIndexFire)
+    if (FingerIndex == FingerIndexFire) {
       HandleFireOrHoldPressed(Location);
+      UpdatePointerWorldFromViewport(
+        pure::Vector2DFromVector(Location));
+    }
   }
 
   void InputTouchReleased(
