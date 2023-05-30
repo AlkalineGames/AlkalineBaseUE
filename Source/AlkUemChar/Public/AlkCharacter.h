@@ -41,6 +41,8 @@ public: // blueprintables
     FVector AlkInputDragMoveMetersPerViewport;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     FVector AlkInputDragTurnDegreesPerViewport;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
+    FVector AlkPointerWorldDirection;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     int AlkFireRapidLimit;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
@@ -59,10 +61,6 @@ public: // blueprintables
     bool AlkHolding;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
-    bool AlkIsMouseOverClient;
-  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
-    FVector2D AlkViewportMousePosition;
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
     void AlkOnHoldEnter(FVector const & ScreenCoordinates);

@@ -52,6 +52,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   struct TouchFingerState TouchFingerStates[ETouchIndex::MAX_TOUCHES];
   FVector2D ViewportDragThresholdRatio;
   FVector2D ViewportDivisor;
+  FVector2D ViewportMousePosition;
 
   AAlkCharacter const & face;
   AAlkCharacter & face_mut;
@@ -135,15 +136,14 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   auto UpdateViewportMousePositionReturnDelta() -> FVector2D{
-    face_mut.AlkIsMouseOverClient = pure::WorldGameViewportIsMouseOverClient(face.GetWorld());
     auto const mousePos = pure::WorldGameViewportMousePosition(face.GetWorld());
-    auto const deltaPos = mousePos - face.AlkViewportMousePosition;
-    face_mut.AlkViewportMousePosition = mousePos;
+    auto const deltaPos = mousePos - ViewportMousePosition;
+    ViewportMousePosition = mousePos;
     return deltaPos;
   }
 
   void UndoMouseDeltaPosition(FVector2D deltaPos) {
-    SetMousePosition(face.AlkViewportMousePosition - deltaPos);
+    SetMousePosition(ViewportMousePosition - deltaPos);
   }
 
   void SetMousePosition(FVector2D pos) {
@@ -329,6 +329,14 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     } else if (bMouseTurningEnabled) {
       DragTurnByViewportDelta(deltaPos);
       UndoMouseDeltaPosition(deltaPos);
+    }
+    if (pure::WorldGameViewportIsMouseOverClient(face.GetWorld())) {
+      auto const pc = face.GetLocalViewingPlayerController();
+      if (pc) {
+        FVector worldPos;
+        pc->DeprojectMousePositionToWorld(
+          worldPos, face_mut.AlkPointerWorldDirection);
+      }
     }
   }
 
@@ -549,6 +557,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
   AlkFireRapidLimit = 0.f;
   AlkInputDragMoveMetersPerViewport = FVector(10.f, 10.f, 10.f);
   AlkInputDragTurnDegreesPerViewport = FVector(360.f, 144.f, 0.f);
+  AlkPointerWorldDirection = FVector(1.f, 0.f, 0.f);
     // !!! ^ account for the UE PlayerController values of
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
