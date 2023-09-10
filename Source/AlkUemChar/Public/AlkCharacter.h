@@ -55,6 +55,8 @@ public: // blueprintables
     float AlkLookRateDegPerSec;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
     float AlkTurnRateDegPerSec;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
+    float AlkTurnSnapDeg;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkHoldEnabled;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)

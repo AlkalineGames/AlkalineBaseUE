@@ -360,15 +360,18 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputSnapTurnBack() {
-    // TODO: ### IMPLEMENT
+    auto const world = face.GetWorld();
+    if (world) face_mut.AddControllerYawInput(180);
   }
 
   void InputSnapTurnLeft() {
-    // TODO: ### IMPLEMENT
+    auto const world = face.GetWorld();
+    if (world) face_mut.AddControllerYawInput(- face.AlkTurnSnapDeg);
   }
 
   void InputSnapTurnRight() {
-    // TODO: ### IMPLEMENT
+    auto const world = face.GetWorld();
+    if (world) face_mut.AddControllerYawInput(face.AlkTurnSnapDeg);
   }
 
   void InputTouchDragged(
@@ -574,6 +577,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
   AlkInputHoldThresholdSeconds = 0.3f;
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
+  AlkTurnSnapDeg = 5.f;
 }
 
 void AAlkCharacter::SetupPlayerInputComponent(
