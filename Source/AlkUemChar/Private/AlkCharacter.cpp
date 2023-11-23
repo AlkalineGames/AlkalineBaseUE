@@ -578,6 +578,14 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
   AlkLookRateDegPerSec = 45.f;
   AlkTurnRateDegPerSec = 45.f;
   AlkTurnSnapDeg = 5.f;
+
+# // TODO: $$$ see AlkAcquireMutFollowBoom() below for FP lazy acquisition that UE cannot deal with for some reason
+  AlkFollowBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("AlkFollowBoom"));
+  AlkFollowBoom->SetupAttachment(RootComponent);
+  AlkFollowBoom->TargetArmLength = 300.0f; // TODO: @@@ HARDCODED
+  AlkFollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("AlkFollowCamera"));
+  AlkFollowCamera->SetupAttachment(AlkFollowBoom, USpringArmComponent::SocketName);
+  AlkFollowCamera->bUsePawnControlRotation = false;
 }
 
 void AAlkCharacter::SetupPlayerInputComponent(
@@ -662,6 +670,27 @@ void AAlkCharacter::AlkOnHoldMove_Implementation(
 ) {
   // TODO: ### IMPLEMENT
 }
+
+#if 0 // TODO: $$$ FP lazy acquisition that UE cannot deal with for some reason
+USpringArmComponent *
+AAlkCharacter::AlkAcquireMutFollowBoom() {
+  auto boom = downcast_mut(impl).mutFollowBoom;
+  if (!boom) {
+    boom = CreateDefaultSubobject<USpringArmComponent>(TEXT("AlkFollowBoom"));
+    boom->SetupAttachment(RootComponent);
+    boom->TargetArmLength = 300.0f; // TODO: @@@ HARDCODED
+    downcast_mut(impl).mutFollowBoom = boom;
+  }
+  auto camera = downcast_mut(impl).mutFollowCamera;
+  if (!camera) {
+    camera = CreateDefaultSubobject<UCameraComponent>(TEXT("AlkFollowCamera"));
+    camera->SetupAttachment(boom, USpringArmComponent::SocketName);
+    camera->bUsePawnControlRotation = false;
+    downcast_mut(impl).mutFollowCamera = camera;
+  }
+  return boom;
+}
+#endif
 
 void AAlkCharacter::AlkOnShoot_Implementation(
   FVector const & ScreenCoordinates

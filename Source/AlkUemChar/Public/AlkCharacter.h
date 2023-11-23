@@ -64,6 +64,14 @@ public: // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
 
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
+    class USpringArmComponent* AlkFollowBoom;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
+    class UCameraComponent* AlkFollowCamera;
+  // TODO: $$$ FP lazy acquisition that UE cannot deal with for some reason
+  //UFUNCTION(BlueprintCallable, Category = AlkCharacter)
+  //  USpringArmComponent * AlkAcquireMutFollowBoom();
+
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
     void AlkOnHoldEnter(FVector const & ScreenCoordinates);
     virtual void AlkOnHoldEnter_Implementation(FVector const & ScreenCoordinates);
