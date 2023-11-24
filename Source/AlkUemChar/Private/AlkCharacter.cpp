@@ -510,6 +510,14 @@ auto AAlkCharacter::HasAnyOptions(int const Options) const -> bool {
   return (downcast(impl).Options & Options) != 0;
 }
 
+AAlkCharacter::AAlkCharacter() {
+  completeConstruction(0);
+}
+
+AAlkCharacter::AAlkCharacter(int const inOptions) {
+  completeConstruction(inOptions);
+}
+
 void AAlkCharacter::completeConstruction(int const inOptions) {
   impl.reset(new AAlkCharacterImpl(*this));
   downcast_mut(impl).Options = inOptions;

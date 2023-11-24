@@ -19,6 +19,9 @@ class ALKUEMCHAR_API AAlkCharacter : public AVRCharacter
   GENERATED_BODY()
 
 public:
+  AAlkCharacter();
+  AAlkCharacter(int const inOptions);
+
   static constexpr int OPTION_CAN_SHOOT  = 1 << 0;
   static constexpr int OPTION_NO_JUMP    = 1 << 1;
   static constexpr int OPTION_NO_MOVE    = 1 << 2;
@@ -27,16 +30,12 @@ public:
   auto HasAllOptions(int const inOptions) const -> bool;
   auto HasAnyOptions(int const inOptions) const -> bool;
 
-protected: // TODO: @@@ ABSTRACT CLASS, SUPERCLASSES MUSt CALL:
-  void completeConstruction(int const inOptions = 0); // TODO: @@@ CAPITALIZE
-
-public:
   virtual void SetupPlayerInputComponent(
     class UInputComponent*) override; // APawn::
 
   virtual void Tick(float const DeltaSeconds) override; // AActor::
 
-public: // blueprintables
+  // blueprintables
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     FVector AlkInputDragMoveMetersPerViewport;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
@@ -125,7 +124,10 @@ public: // blueprintables
       // ^ spawns projectile
 
   struct Impl { virtual ~Impl() = 0; };
+
 private:
+  void completeConstruction(int const inOptions);
+
   std::unique_ptr<struct Impl> impl;
 
 // TODO: @@@ REFACTOR THESE BINDINGS METHODS TO BE HIDDEN IN THE IMPL
