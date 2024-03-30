@@ -1,4 +1,4 @@
-// Copyright 2021-2023 Alkaline Games, LLC.
+// Copyright 2021 - 2024 Alkaline Games, LLC.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,17 +15,17 @@ inline auto WorldRealTimeSeconds(
   return world ? world->GetRealTimeSeconds() : 0.f;
 }
 
-#ifdef ALK_UE_ENHANCED
 inline auto WorldGameViewportIsMouseOverClient(
   UWorld const *const world
 ) -> bool {
   if (world) {
     auto viewport = world->GetGameViewport();
+#ifdef ALK_UE_ENHANCED
     if (viewport) return viewport->IsMouseOverClient();
+#endif
   }
   return false;
 }
-#endif
 
 inline auto WorldGameViewportMousePosition(
   UWorld const *const world
