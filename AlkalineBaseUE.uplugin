@@ -29,6 +29,10 @@
   ],
   "Plugins": [
     {
+      "Name": "AlkalineSchemeUE",
+      "Enabled": true
+    },
+    {
       "Name": "VRExpansionPlugin",
       "Enabled": true
     }

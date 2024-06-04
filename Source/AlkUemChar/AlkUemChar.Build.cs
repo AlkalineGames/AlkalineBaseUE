@@ -1,9 +1,9 @@
-// Copyright 2021 Alkaline Games, LLC.
+// Copyright 2019 - 2024 Alkaline Games, LLC. All Rights Reserved.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
-//
+
 using UnrealBuildTool;
 
 public class AlkUemChar : ModuleRules
@@ -18,7 +18,8 @@ public class AlkUemChar : ModuleRules
       "CoreUObject",
       "Engine",
       "HeadMountedDisplay",
-      "AlkUemPure"
+      "AlkUemPure",
+      "AlkUemScheme"
     });
     PublicDependencyModuleNames.AddRange(new string[] {
       "VRExpansionPlugin"
