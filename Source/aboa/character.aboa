@@ -1,0 +1,29 @@
+# Copyright 2024 Alkaline Games, LLC. All rights reserved.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# AlkalineBaseUE character
+
+(begin
+  (~ tracing-to-log   $f)
+  (~ tracing-to-print $f)
+  (~ tracing (or tracing-to-log tracing-to-print))
+  (< (trace a)
+        (? tracing (@ ((s (format $f "## boot.aboa: ~A" a)))
+          (? tracing-to-log   (ue-log s))
+          (? tracing-to-print (ue-print-string-primary s)))))
+  (< (trace-format-values form . vals)
+        (? tracing (trace-string (apply format $f form vals))))
+
+  (< (init-character uobject)
+    ## TODO: trace-format-values FAILS
+    ##(trace-format-values "(init-character <uobject> ~A" "uobject"))
+    (trace "(init-character ...)"))
+
+  (< (setup-character-input uobject)
+    (trace "(setup-character-input ...)")
+    (ue-bind-input-action uobject "AlkAutoForward" 'pressed
+      (<__ () (trace "AUTO-FORWARD PRESSED"))))
+)
