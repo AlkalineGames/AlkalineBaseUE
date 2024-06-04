@@ -24,5 +24,7 @@ public class AlkUemChar : ModuleRules
     PublicDependencyModuleNames.AddRange(new string[] {
       "VRExpansionPlugin"
     });
+    RuntimeDependencies.Add(
+      PluginDirectory + "/Source/aboa/character.aboa");
   }
 }
