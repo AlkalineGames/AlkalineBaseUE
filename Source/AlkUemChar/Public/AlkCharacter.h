@@ -30,8 +30,9 @@ public:
   auto HasAllOptions(int const inOptions) const -> bool;
   auto HasAnyOptions(int const inOptions) const -> bool;
 
-  virtual void SetupPlayerInputComponent(
-    class UInputComponent*) override; // APawn::
+  virtual void PostInitializeComponents() override; // APawn::
+  virtual void SetupPlayerInputComponent(           // APawn::
+    class UInputComponent*) override;
 
   virtual void Tick(float const DeltaSeconds) override; // AActor::
 

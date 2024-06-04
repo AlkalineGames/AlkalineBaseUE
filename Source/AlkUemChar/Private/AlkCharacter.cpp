@@ -18,7 +18,14 @@
 #include "AlkPureMath.h"
 #include "AlkPureWorld.h"
 
+#include "alk-scheme-ue.h"
+#include "alk-ue-helper.h"
+
 constexpr int HMDUpdateFrequencySeconds = 1.f;
+
+static auto codeFilePath(char const * const filename) -> FString {
+  return PluginFilePath("AlkalineBaseUE", "Source/aboa", filename);
+}
 
 struct AAlkCharacterImpl: AAlkCharacter::Impl {
   int Options = 0;
@@ -596,9 +603,24 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
   AlkFollowCamera->bUsePawnControlRotation = false;
 }
 
+void AAlkCharacter::PostInitializeComponents() {
+  AVRCharacter::PostInitializeComponents();
+  auto results = runCachedSchemeUeCodeAtPath(
+    codeFilePath("character.aboa"), "init-character",
+    makeSchemeUeDataDict({
+      {"uobject", makeSchemeUeDataUobject(*this)}}),
+    true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
+  //PrintStringToScreen(dumpSchemeUeDataDict(results));
+    // ^ TODO: ### TRACING
+  //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
+    // ^ TODO: ### TRACING
+}
+
 void AAlkCharacter::SetupPlayerInputComponent(
   class UInputComponent* PlayerInputComponent
 ) {
+  // TODO: ### NOTE THAT THIS IS GETTING CALLED TWICE AFTER EVERY BEGIN PLAY
+  AVRCharacter::SetupPlayerInputComponent(PlayerInputComponent);
   if (!PlayerInputComponent)
     return; // TODO: @@@ LOG FAILURE
   // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
@@ -639,6 +661,15 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindTouch(EInputEvent::IE_Released, this, &AAlkCharacter::InputTouchReleased);
     PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AAlkCharacter::InputTouchDragged);
   }
+  auto results = runCachedSchemeUeCodeAtPath(
+    codeFilePath("character.aboa"), "setup-character-input",
+    makeSchemeUeDataDict({
+      {"uobject", makeSchemeUeDataUobject(*this)}}),
+    true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
+  //PrintStringToScreen(dumpSchemeUeDataDict(results));
+    // ^ TODO: ### TRACING
+  //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
+    // ^ TODO: ### TRACING
 }
 
 void AAlkCharacter::Tick(float DeltaSeconds) {
