@@ -28,6 +28,8 @@ static auto codeFilePath(char const * const filename) -> FString {
 }
 
 struct AAlkCharacterImpl: AAlkCharacter::Impl {
+  float AutoForwardLevel = 1.f;
+  float AutoForwardValue = 0.f;
   int Options = 0;
   bool bMouseMovingEnabled = false;
   bool bMouseTurningEnabled = false;
@@ -268,14 +270,15 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMoveForward(float const Value) {
-    if (Value != 0.0f) face_mut.AddMovementInput(
-        // face.GetActorRightVector(), Value);
+    auto const val = (Value != 0.f) ? Value : AutoForwardValue;
+    if (val != 0.f) face_mut.AddMovementInput(
+        // face.GetActorRightVector(), val);
         // !!! use VRBaseCharacter::
-        face.GetVRForwardVector(), Value);
+        face.GetVRForwardVector(), val);
   }
 
   void InputMoveRight(float const Value) {
-    if (Value != 0.0f) face_mut.AddMovementInput(
+    if (Value != 0.f) face_mut.AddMovementInput(
         // face.GetActorRightVector(), Value);
         // !!! use VRBaseCharacter::
         face.GetVRRightVector(), Value);
@@ -283,13 +286,13 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void InputTurnRate(float const Rate) {
     auto const world = face.GetWorld();
-    if (world && Rate != 0.0f) face_mut.AddControllerYawInput(
+    if (world && Rate != 0.f) face_mut.AddControllerYawInput(
       Rate * face.AlkTurnRateDegPerSec * world->GetDeltaSeconds());
   }
 
   void InputLookRate(float const Rate) {
     auto const world = face.GetWorld();
-    if (world && Rate != 0.0f) face_mut.AddControllerPitchInput(
+    if (world && Rate != 0.f) face_mut.AddControllerPitchInput(
       Rate * face.AlkLookRateDegPerSec * world->GetDeltaSeconds());
   }
 
@@ -379,6 +382,10 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   void InputSnapTurnRight() {
     auto const world = face.GetWorld();
     if (world) face_mut.AddControllerYawInput(face.AlkTurnSnapDeg);
+  }
+
+  void InputToggleAutoForward() {
+    AutoForwardValue = (AutoForwardValue == 0.f) ? AutoForwardLevel : 0.f;
   }
 
   void InputTouchDragged(
@@ -577,7 +584,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
       AlkNodeShootMotionControllerL->SetupAttachment(LeftMotionController);
     if (RightMotionController)
       AlkNodeShootMotionControllerR->SetupAttachment(RightMotionController);
-    AlkShootOffset = FVector(0.0f, 0.0f, 0.0f);
+    AlkShootOffset = FVector(0.f, 0.f, 0.f);
   }
   // blueprintables
   AlkFireRapidLimit = 0.f;
@@ -597,7 +604,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
 # // TODO: $$$ see AlkAcquireMutFollowBoom() below for FP lazy acquisition that UE cannot deal with for some reason
   AlkFollowBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("AlkFollowBoom"));
   AlkFollowBoom->SetupAttachment(RootComponent);
-  AlkFollowBoom->TargetArmLength = 300.0f; // TODO: @@@ HARDCODED
+  AlkFollowBoom->TargetArmLength = 300.f; // TODO: @@@ HARDCODED
   AlkFollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("AlkFollowCamera"));
   AlkFollowCamera->SetupAttachment(AlkFollowBoom, USpringArmComponent::SocketName);
   AlkFollowCamera->bUsePawnControlRotation = false;
@@ -638,6 +645,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindAction("AlkSnapMoveForward", IE_Pressed, this, &AAlkCharacter::InputSnapMoveForward);
     PlayerInputComponent->BindAction("AlkSnapMoveLeft", IE_Pressed, this, &AAlkCharacter::InputSnapMoveLeft);
     PlayerInputComponent->BindAction("AlkSnapMoveRight", IE_Pressed, this, &AAlkCharacter::InputSnapMoveRight);
+    PlayerInputComponent->BindAction("AlkAutoForward", IE_Pressed, this, &AAlkCharacter::InputToggleAutoForward);
   }
   PlayerInputComponent->BindAction("AlkSnapTurnBack", IE_Pressed, this, &AAlkCharacter::InputSnapTurnBack);
   PlayerInputComponent->BindAction("AlkSnapTurnLeft", IE_Pressed, this, &AAlkCharacter::InputSnapTurnLeft);
@@ -717,7 +725,7 @@ AAlkCharacter::AlkAcquireMutFollowBoom() {
   if (!boom) {
     boom = CreateDefaultSubobject<USpringArmComponent>(TEXT("AlkFollowBoom"));
     boom->SetupAttachment(RootComponent);
-    boom->TargetArmLength = 300.0f; // TODO: @@@ HARDCODED
+    boom->TargetArmLength = 300.f; // TODO: @@@ HARDCODED
     downcast_mut(impl).mutFollowBoom = boom;
   }
   auto camera = downcast_mut(impl).mutFollowCamera;
@@ -848,6 +856,10 @@ void AAlkCharacter::InputSnapTurnLeft() {
 
 void AAlkCharacter::InputSnapTurnRight() {
   downcast_mut(impl).InputSnapTurnRight();
+}
+
+void AAlkCharacter::InputToggleAutoForward() {
+  downcast_mut(impl).InputToggleAutoForward();
 }
 
 void AAlkCharacter::InputTouchDragged(

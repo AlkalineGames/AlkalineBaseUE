@@ -154,6 +154,7 @@ private:
   void InputSnapTurnBack();
   void InputSnapTurnLeft();
   void InputSnapTurnRight();
+  void InputToggleAutoForward();
 
   void InputTouchDragged(ETouchIndex::Type const FingerIndex, FVector const Location);
   void InputTouchPressed(ETouchIndex::Type const FingerIndex, FVector const Location);
