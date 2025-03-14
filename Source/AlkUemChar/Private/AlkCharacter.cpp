@@ -1,4 +1,4 @@
-// Copyright 2015-2023 Alkaline Games, LLC.
+// Copyright © 2015 - 2025 Alkaline Games, LLC.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -611,9 +611,9 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
 }
 
 void AAlkCharacter::PostInitializeComponents() {
-  AVRCharacter::PostInitializeComponents();
+  Super::PostInitializeComponents();
   auto results = runCachedSchemeUeCodeAtPath(
-    codeFilePath("character.aboa"), "init-character",
+    codeFilePath("character.aboa"), "character-init",
     makeSchemeUeDataDict({
       {"uobject", makeSchemeUeDataUobject(*this)}}),
     true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
@@ -627,7 +627,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
   class UInputComponent* PlayerInputComponent
 ) {
   // TODO: ### NOTE THAT THIS IS GETTING CALLED TWICE AFTER EVERY BEGIN PLAY
-  AVRCharacter::SetupPlayerInputComponent(PlayerInputComponent);
+  Super::SetupPlayerInputComponent(PlayerInputComponent);
   if (!PlayerInputComponent)
     return; // TODO: @@@ LOG FAILURE
   // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
@@ -670,7 +670,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AAlkCharacter::InputTouchDragged);
   }
   auto results = runCachedSchemeUeCodeAtPath(
-    codeFilePath("character.aboa"), "setup-character-input",
+    codeFilePath("character.aboa"), "character-input-setup",
     makeSchemeUeDataDict({
       {"uobject", makeSchemeUeDataUobject(*this)}}),
     true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
@@ -684,6 +684,15 @@ void AAlkCharacter::Tick(float DeltaSeconds) {
   Super::Tick(DeltaSeconds);
   downcast_mut(impl).UpdateHMDState(DeltaSeconds);
   downcast_mut(impl).UpdateInputState(DeltaSeconds);
+  auto results = runCachedSchemeUeCodeAtPath(
+    codeFilePath("character.aboa"), "character-tick",
+    makeSchemeUeDataDict({
+      {"uobject", makeSchemeUeDataUobject(*this)}}),
+    true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
+  //PrintStringToScreen(dumpSchemeUeDataDict(results));
+    // ^ TODO: ### TRACING
+  //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
+    // ^ TODO: ### TRACING
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES
