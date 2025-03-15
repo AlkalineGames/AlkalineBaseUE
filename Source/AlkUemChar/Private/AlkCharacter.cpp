@@ -673,7 +673,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
     codeFilePath("character.aboa"), "character-input-setup",
     makeSchemeUeDataDict({
       {"uobject", makeSchemeUeDataUobject(*this)}}),
-    true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
+    false); // forceReload TODO: ### ASSUMING PostInitializeComponents() RELOADS IT
   //PrintStringToScreen(dumpSchemeUeDataDict(results));
     // ^ TODO: ### TRACING
   //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
@@ -688,7 +688,7 @@ void AAlkCharacter::Tick(float DeltaSeconds) {
     codeFilePath("character.aboa"), "character-tick",
     makeSchemeUeDataDict({
       {"uobject", makeSchemeUeDataUobject(*this)}}),
-    true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
+    false); // forceReload TODO: ### ASSUMING PostInitializeComponents() RELOADS IT
   //PrintStringToScreen(dumpSchemeUeDataDict(results));
     // ^ TODO: ### TRACING
   //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
