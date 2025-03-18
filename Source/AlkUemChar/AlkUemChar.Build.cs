@@ -18,8 +18,8 @@ public class AlkUemChar : ModuleRules
       "CoreUObject",
       "Engine",
       "HeadMountedDisplay",
-      "AlkUemPure",
-      "AlkUemScheme"
+      "AboaUem",
+      "AlkUemPure"
     });
     PublicDependencyModuleNames.AddRange(new string[] {
       "VRExpansionPlugin"

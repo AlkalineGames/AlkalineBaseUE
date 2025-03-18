@@ -18,8 +18,8 @@
 #include "AlkPureMath.h"
 #include "AlkPureWorld.h"
 
-#include "alk-scheme-ue.h"
-#include "alk-ue-helper.h"
+#include "aboa-ue.h"
+#include "aboa-ue-helper.h"
 
 constexpr int HMDUpdateFrequencySeconds = 1.f;
 
@@ -612,14 +612,14 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
 
 void AAlkCharacter::PostInitializeComponents() {
   Super::PostInitializeComponents();
-  auto results = runCachedSchemeUeCodeAtPath(
+  auto results = runCachedAboaUeCodeAtPath(
     codeFilePath("character.aboa"), "character-init",
-    makeSchemeUeDataDict({
-      {"uobject", makeSchemeUeDataUobject(*this)}}),
+    makeAboaUeDataDict({
+      {"uobject", makeAboaUeDataUobject(*this)}}),
     true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
-  //PrintStringToScreen(dumpSchemeUeDataDict(results));
+  //PrintStringToScreen(dumpAboaUeDataDict(results));
     // ^ TODO: ### TRACING
-  //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
+  //PrintStringToScreen(stringFromAboaUeDataDict(results, "result"));
     // ^ TODO: ### TRACING
 }
 
@@ -669,14 +669,14 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindTouch(EInputEvent::IE_Released, this, &AAlkCharacter::InputTouchReleased);
     PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AAlkCharacter::InputTouchDragged);
   }
-  auto results = runCachedSchemeUeCodeAtPath(
+  auto results = runCachedAboaUeCodeAtPath(
     codeFilePath("character.aboa"), "character-input-setup",
-    makeSchemeUeDataDict({
-      {"uobject", makeSchemeUeDataUobject(*this)}}),
+    makeAboaUeDataDict({
+      {"uobject", makeAboaUeDataUobject(*this)}}),
     false); // forceReload TODO: ### ASSUMING PostInitializeComponents() RELOADS IT
-  //PrintStringToScreen(dumpSchemeUeDataDict(results));
+  //PrintStringToScreen(dumpAboaUeDataDict(results));
     // ^ TODO: ### TRACING
-  //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
+  //PrintStringToScreen(stringFromAboaUeDataDict(results, "result"));
     // ^ TODO: ### TRACING
 }
 
@@ -684,14 +684,14 @@ void AAlkCharacter::Tick(float DeltaSeconds) {
   Super::Tick(DeltaSeconds);
   downcast_mut(impl).UpdateHMDState(DeltaSeconds);
   downcast_mut(impl).UpdateInputState(DeltaSeconds);
-  auto results = runCachedSchemeUeCodeAtPath(
+  auto results = runCachedAboaUeCodeAtPath(
     codeFilePath("character.aboa"), "character-tick",
-    makeSchemeUeDataDict({
-      {"uobject", makeSchemeUeDataUobject(*this)}}),
+    makeAboaUeDataDict({
+      {"uobject", makeAboaUeDataUobject(*this)}}),
     false); // forceReload TODO: ### ASSUMING PostInitializeComponents() RELOADS IT
-  //PrintStringToScreen(dumpSchemeUeDataDict(results));
+  //PrintStringToScreen(dumpAboaUeDataDict(results));
     // ^ TODO: ### TRACING
-  //PrintStringToScreen(stringFromSchemeUeDataDict(results, "result"));
+  //PrintStringToScreen(stringFromAboaUeDataDict(results, "result"));
     // ^ TODO: ### TRACING
 }
 
