@@ -1,4 +1,4 @@
-# Copyright © 2015 - 2025 Alkaline Games, LLC.
+# Copyright © 2023 - 2025 Alkaline Games, LLC.
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,27 +7,29 @@
 # AlkalineBaseUE character
 
 (begin
-  (~ tracing-to-log   $f)
-  (~ tracing-to-print $f)
-  (~ tracing (or tracing-to-log tracing-to-print))
-  (< (trace a)
-        (? tracing (@ ((s (format $f "## character.aboa: ~A" a)))
-          (? tracing-to-log   (ue-log s))
-          (? tracing-to-print (ue-print-string-primary s)))))
-  (< (trace-format-values form . vals)
-        (? tracing (trace-string (apply format $f form vals))))
+  ## TODO: @@@ must rename trace/tracing otherwise it overrides boot.aboa
+  (~ tracing-char-to-log   $f)
+  (~ tracing-char-to-print $f)
+  (~ tracing-char (or tracing-char-to-log tracing-char-to-print))
+  (< (trace-char a)
+        (? tracing-char (@ ((s (format $f "## character.aboa: ~A" a)))
+          (? tracing-char-to-log   (ue-log s))
+          (? tracing-char-to-print (ue-print-string-primary s)))))
+  (< (trace-char-format-values form . vals)
+        (? tracing-char (trace-char (apply format $f form vals))))
 
   (< (character-init uobject)
-    (trace "(character-init ...)"))
-    ## TODO: trace-format-values FAILS
-    ##(trace-format-values "(init-character <uobject> ~A" "uobject"))
+    (trace-char-format-values "(character-init <uobject> ~A)" uobject)
+    ())
 
   (< (character-input-setup uobject)
-    (trace "(character-input-setup ...)"))
-    ## TODO: currently bound and handled in C++
+    (trace-char-format-values "(character-input-setup <uobject> ~A)" uobject)
+    ## TODO: @@@ currently bound and handled in C++
     ##(ue-bind-input-action uobject "AlkAutoForward" 'pressed
-    ##  (<__ () (trace "AUTO-FORWARD PRESSED"))))
+    ##  (<__ () (trace-char "AUTO-FORWARD PRESSED"))))
+    ())
 
   (< (character-tick uobject)
-    ##(trace "(character-tick ...)"))
+    ##(trace-char-format-values "(character-tick <uobject> ~A)" uobject)
+    ())
 )
