@@ -669,30 +669,20 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindTouch(EInputEvent::IE_Released, this, &AAlkCharacter::InputTouchReleased);
     PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AAlkCharacter::InputTouchDragged);
   }
-  auto results = runCachedAboaUeCodeAtPath(
-    codeFilePath("character.aboa"), "character-input-setup",
+  auto results = callLoadedAboaUeCode(
+    "character-input-setup",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobject(*this)}}),
-    false); // forceReload TODO: ### ASSUMING PostInitializeComponents() RELOADS IT
-  //PrintStringToScreen(dumpAboaUeDataDict(results));
-    // ^ TODO: ### TRACING
-  //PrintStringToScreen(stringFromAboaUeDataDict(results, "result"));
-    // ^ TODO: ### TRACING
+      {"uobject", makeAboaUeDataUobject(*this)}}));
 }
 
 void AAlkCharacter::Tick(float DeltaSeconds) {
   Super::Tick(DeltaSeconds);
   downcast_mut(impl).UpdateHMDState(DeltaSeconds);
   downcast_mut(impl).UpdateInputState(DeltaSeconds);
-  auto results = runCachedAboaUeCodeAtPath(
-    codeFilePath("character.aboa"), "character-tick",
+  auto results = callLoadedAboaUeCode(
+    "character-tick",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobject(*this)}}),
-    false); // forceReload TODO: ### ASSUMING PostInitializeComponents() RELOADS IT
-  //PrintStringToScreen(dumpAboaUeDataDict(results));
-    // ^ TODO: ### TRACING
-  //PrintStringToScreen(stringFromAboaUeDataDict(results, "result"));
-    // ^ TODO: ### TRACING
+      {"uobject", makeAboaUeDataUobject(*this)}}));
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES
