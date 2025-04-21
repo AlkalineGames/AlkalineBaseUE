@@ -31,8 +31,11 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   float AutoForwardLevel = 1.f;
   float AutoForwardValue = 0.f;
   int Options = 0;
-  bool bMouseMovingEnabled = false;
-  bool bMouseTurningEnabled = false;
+  bool bMouseMovingEnabled    = false;
+  bool bMouseTurningEnabled   = false;
+  bool bMovingForward         = false;
+  bool bMovingRight           = false;
+  bool bTurningBodyNotCamera  = false;
   struct HMDState {
     FRotator Orientation;
     FVector Position;
@@ -70,6 +73,48 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     : face(face), face_mut(face) {}
 
   ~AAlkCharacterImpl() {}
+
+  void AddControllerYawDegrees(float degrees) {
+    auto const pc = face.GetLocalViewingPlayerController();
+    if (pc) {
+      auto amount = degrees / pc->GetDeprecatedInputYawScale();
+      face_mut.AddControllerYawInput(amount);
+    }
+  }
+
+  void EstablishMoving() {
+    if (!bTurningBodyNotCamera) {
+         bTurningBodyNotCamera = true;
+      auto rotboom = face_mut.AlkFollowBoom->GetRelativeRotation();
+      if (rotboom.Yaw != 0.f) {
+        AddControllerYawDegrees(rotboom.Yaw);
+        face_mut.AlkFollowBoom->SetRelativeRotation(
+          FRotator(rotboom.Pitch,0,rotboom.Roll));
+      }
+    }
+  }
+
+  void EstablishMovingForward() {
+    bMovingForward = true;
+    EstablishMoving();
+  }
+
+  void EstablishMovingRight() {
+    bMovingRight = true;
+    EstablishMoving();
+  }
+
+  void EstablishStoppingForward() {
+    bMovingForward = false;
+    if (!bMovingRight)
+        bTurningBodyNotCamera = false;
+  }
+
+  void EstablishStoppingRight() {
+    bMovingRight = false;
+    if (!bMovingForward)
+        bTurningBodyNotCamera = false;
+  }
 
   void ApplyHMDState() {
     if (face_mut.VRReplicatedCamera)
@@ -271,17 +316,25 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void InputMoveForward(float const Value) {
     auto const val = (Value != 0.f) ? Value : AutoForwardValue;
-    if (val != 0.f) face_mut.AddMovementInput(
+    if (val != 0.f) {
+      EstablishMovingForward();
+      face_mut.AddMovementInput(
         // face.GetActorRightVector(), val);
         // !!! use VRBaseCharacter::
         face.GetVRForwardVector(), val);
+    } else
+      EstablishStoppingForward();
   }
 
   void InputMoveRight(float const Value) {
-    if (Value != 0.f) face_mut.AddMovementInput(
+    if (Value != 0.f) {
+      EstablishMovingRight();
+      face_mut.AddMovementInput(
         // face.GetActorRightVector(), Value);
         // !!! use VRBaseCharacter::
         face.GetVRRightVector(), Value);
+    } else
+      EstablishStoppingRight();
   }
 
   void InputTurnRate(float const Rate) {
@@ -297,6 +350,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMouseMovingDisable() {
+    EstablishStoppingForward();
+    EstablishStoppingRight();
     bMouseMovingEnabled = false;
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
@@ -304,6 +359,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMouseMovingEnable() {
+    EstablishMovingForward();
+    EstablishMovingRight();
     bMouseMovingEnabled = true;
     // !!! update whenever enabled in case the viewport changed
     UpdateViewportState();
@@ -371,21 +428,27 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void InputSnapTurnBack() {
     auto const world = face.GetWorld();
-    if (world) face_mut.AddControllerYawInput(180);
+    if (world) AddControllerYawDegrees(180);
   }
 
   void InputSnapTurnLeft() {
     auto const world = face.GetWorld();
-    if (world) face_mut.AddControllerYawInput(- face.AlkTurnSnapDeg);
+    if (world) AddControllerYawDegrees(- face.AlkTurnSnapDeg);
   }
 
   void InputSnapTurnRight() {
     auto const world = face.GetWorld();
-    if (world) face_mut.AddControllerYawInput(face.AlkTurnSnapDeg);
+    if (world) AddControllerYawDegrees(face.AlkTurnSnapDeg);
   }
 
   void InputToggleAutoForward() {
-    AutoForwardValue = (AutoForwardValue == 0.f) ? AutoForwardLevel : 0.f;
+    if (AutoForwardValue == 0.f) {
+      EstablishMovingForward();
+      AutoForwardValue = AutoForwardLevel;
+    } else {
+      EstablishStoppingForward();
+      AutoForwardValue = 0.f;
+    }
   }
 
   void InputTouchDragged(
@@ -489,12 +552,23 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
       auto const vpRatio = deltaPos / ViewportDivisor;
       auto const degrees = pure::VectorFromVector2D(vpRatio) *
         face.AlkInputDragTurnDegreesPerViewport;
-      if (degrees.X != 0.f)
-        face_mut.AddControllerYawInput(degrees.X);
-          // !!! ^ UE PlayerController applies InputYawScale
-      if (degrees.Y != 0.f)
-        face_mut.AddControllerPitchInput(degrees.Y);
-          // !!! ^ UE PlayerController applies InputPitchScale
+      if (degrees.X != 0.f) {
+        if (bTurningBodyNotCamera)
+          face_mut.AddControllerYawInput(degrees.X);
+            // !!! ^ UE PlayerController applies InputYawScale
+        else {
+          face_mut.AlkFollowBoom->AddRelativeRotation(FRotator(0,degrees.X,0));
+        }
+      }
+      if (degrees.Y != 0.f) {
+        // TODO: @@@ always rotate camera ### BUT WHAT ABOUT FIRST PERSON?
+        //if (bTurningBodyNotCamera)
+        //  face_mut.AddControllerPitchInput(degrees.Y);
+            // !!! ^ UE PlayerController applies InputPitchScale
+        //else {
+          face_mut.AlkFollowBoom->AddRelativeRotation(FRotator(-degrees.Y,0,0));
+        //}
+      }
       if (face.AlkTracing)
         UKismetSystemLibrary::PrintString(&face_mut,
           FString::Printf(TEXT("DragTurnByViewportDelta((%f,%f)): vpRatio (%f,%f), degrees (%f,%f)"),
@@ -604,10 +678,8 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
 # // TODO: $$$ see AlkAcquireMutFollowBoom() below for FP lazy acquisition that UE cannot deal with for some reason
   AlkFollowBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("AlkFollowBoom"));
   AlkFollowBoom->SetupAttachment(RootComponent);
-  AlkFollowBoom->TargetArmLength = 300.f; // TODO: @@@ HARDCODED
+  //AlkFollowBoom->TargetArmLength = 300.f; // TODO: @@@ ALREADY THE DEFAULT
   AlkFollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("AlkFollowCamera"));
-  AlkFollowCamera->SetupAttachment(AlkFollowBoom, USpringArmComponent::SocketName);
-  AlkFollowCamera->bUsePawnControlRotation = false;
 }
 
 void AAlkCharacter::PostInitializeComponents() {
@@ -673,6 +745,19 @@ void AAlkCharacter::SetupPlayerInputComponent(
     "character-input-setup",
     makeAboaUeDataDict({
       {"uobject", makeAboaUeDataUobject(*this)}}));
+}
+
+void AAlkCharacter::BeginPlay() {
+  Super::BeginPlay();
+  // use follow camera, the default
+  AlkFollowBoom->SetRelativeLocation(
+    FVector(.0, .0, 1.5*GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+  AlkFollowCamera->AttachToComponent(
+    AlkFollowBoom,
+    FAttachmentTransformRules::KeepRelativeTransform,
+    USpringArmComponent::SocketName);
+  AlkFollowCamera   ->SetActiveFlag(true);
+  VRReplicatedCamera->SetActiveFlag(false);
 }
 
 void AAlkCharacter::Tick(float DeltaSeconds) {

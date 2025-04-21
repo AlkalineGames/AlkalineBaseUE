@@ -34,6 +34,7 @@ public:
   virtual void SetupPlayerInputComponent(           // APawn::
     class UInputComponent*) override;
 
+  virtual void BeginPlay()                    override; // AActor::
   virtual void Tick(float const DeltaSeconds) override; // AActor::
 
   // blueprintables
