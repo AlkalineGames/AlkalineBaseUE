@@ -760,14 +760,15 @@ void AAlkCharacter::BeginPlay() {
   VRReplicatedCamera->SetActiveFlag(false);
 }
 
-void AAlkCharacter::Tick(float DeltaSeconds) {
+void AAlkCharacter::Tick(float DeltaSeconds) { // override
   Super::Tick(DeltaSeconds);
   downcast_mut(impl).UpdateHMDState(DeltaSeconds);
   downcast_mut(impl).UpdateInputState(DeltaSeconds);
   auto results = callLoadedAboaUeCode(
     "character-tick",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobject(*this)}}));
+      {"uobject", makeAboaUeDataUobject(*this)},
+      {"delta",   makeAboaUeDataFloat(DeltaSeconds)}}));
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES

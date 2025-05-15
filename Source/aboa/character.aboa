@@ -29,7 +29,7 @@
     ##  (<__ () (trace-char "AUTO-FORWARD PRESSED"))))
     ())
 
-  (< (character-tick uobject)
+  (< (character-tick delta uobject)
     ##(trace-char-format-values "(character-tick <uobject> ~A)" uobject)
     ())
 )
