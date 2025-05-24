@@ -315,15 +315,22 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMoveForward(float const Value) {
-    auto const val = (Value != 0.f) ? Value : AutoForwardValue;
-    if (val != 0.f) {
+    float mutval;
+    if (Value == 0.f)
+      mutval = AutoForwardValue;
+    else {
+      AutoForwardValue = 0;
+      mutval = Value;
+    }
+    if (mutval == 0.f)
+      EstablishStoppingForward();
+    else {
       EstablishMovingForward();
       face_mut.AddMovementInput(
         // face.GetActorRightVector(), val);
         // !!! use VRBaseCharacter::
-        face.GetVRForwardVector(), val);
-    } else
-      EstablishStoppingForward();
+        face.GetVRForwardVector(), mutval);
+    }
   }
 
   void InputMoveRight(float const Value) {
