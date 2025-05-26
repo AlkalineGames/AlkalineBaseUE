@@ -1,4 +1,4 @@
-// Copyright 2015-2023 Alkaline Games, LLC.
+// Copyright © 2015 - 2025 Alkaline Games, LLC.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -59,6 +59,8 @@ public:
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=AlkCharacter)
     float AlkTurnSnapDeg;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    bool AlkFirstPerson;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkHoldEnabled;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkHolding;
@@ -72,6 +74,8 @@ public:
   // TODO: $$$ FP lazy acquisition that UE cannot deal with for some reason
   //UFUNCTION(BlueprintCallable, Category = AlkCharacter)
   //  USpringArmComponent * AlkAcquireMutFollowBoom();
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
+    class UCameraComponent* AlkCameraActive;
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
     void AlkOnHoldEnter(FVector const & ScreenCoordinates);

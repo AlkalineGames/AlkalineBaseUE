@@ -14,6 +14,7 @@
 //#include "VRNotificationsComponent.h"
 
 #include "GripMotionControllerComponent.h"
+//#include "VRExpansionFunctionLibrary.h" // for IsInVREditorPreviewOrGame, but we don't use it
 
 #include "AlkPureMath.h"
 #include "AlkPureWorld.h"
@@ -82,6 +83,24 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     }
   }
 
+  void EstablishFirstPerson() { // TODO: ### NOT YET USED
+    // TODO: ### ThirdPersonMesh IS ONLY IN THE BLUEPRINT, WHY, AND WHY DO THIS?
+    //face_mut.ThirdPersonMesh->SetAnimationMode(EAnimationMode::AnimationCustomMode);
+    //face_mut.ThirdPersonMesh->SetSkinnedAssetAndUpdate(NULL);
+    //face_mut.ThirdPersonMesh->SetVisibility(false);
+    face_mut.AlkFollowCamera    ->SetActiveFlag(false);
+    face_mut.VRReplicatedCamera ->SetActiveFlag(true);
+    face_mut.AlkCameraActive    = face_mut.VRReplicatedCamera;
+    face_mut.AlkFirstPerson     = true;
+  }
+
+  void EstablishThirdPerson() {
+    face_mut.VRReplicatedCamera ->SetActiveFlag(false);
+    face_mut.AlkFollowCamera    ->SetActiveFlag(true);
+    face_mut.AlkCameraActive    = face_mut.AlkFollowCamera;
+    face_mut.AlkFirstPerson     = false;
+  }
+
   void EstablishMoving() {
     if (!bTurningBodyNotCamera) {
          bTurningBodyNotCamera = true;
@@ -118,7 +137,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
 
   void ApplyHMDState() {
     if (face_mut.VRReplicatedCamera)
-      face_mut.VRReplicatedCamera->bUsePawnControlRotation = !HMDState.Worn;
+        face_mut.VRReplicatedCamera->bUsePawnControlRotation = !HMDState.Worn;
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
         HMDState.Worn ? FString(TEXT("HMD worn"))
@@ -756,15 +775,13 @@ void AAlkCharacter::SetupPlayerInputComponent(
 
 void AAlkCharacter::BeginPlay() {
   Super::BeginPlay();
-  // use follow camera, the default
   AlkFollowBoom->SetRelativeLocation(
     FVector(.0, .0, 1.5*GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
   AlkFollowCamera->AttachToComponent(
     AlkFollowBoom,
     FAttachmentTransformRules::KeepRelativeTransform,
     USpringArmComponent::SocketName);
-  AlkFollowCamera   ->SetActiveFlag(true);
-  VRReplicatedCamera->SetActiveFlag(false);
+  downcast_mut(impl).EstablishThirdPerson(); // TODO: ### FORCED FOR NOW
 }
 
 void AAlkCharacter::Tick(float DeltaSeconds) { // override
