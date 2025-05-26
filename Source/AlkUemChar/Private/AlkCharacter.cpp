@@ -687,13 +687,14 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
     AlkShootOffset = FVector(0.f, 0.f, 0.f);
   }
   // blueprintables
-  AlkFireRapidLimit = 0.f;
   AlkInputDragMoveMetersPerViewport = FVector(10.f, 10.f, 10.f);
   AlkInputDragTurnDegreesPerViewport = FVector(360.f, 144.f, 0.f);
   AlkPointerWorldDirection = FVector(1.f, 0.f, 0.f);
     // !!! ^ account for the UE PlayerController values of
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
+  AlkFireRapidLimit = 0;
+  AlkPointerRange = 1000.f;
   AlkInputDragThresholdPixels = 4.f;
   AlkInputFireRapidThresholdSeconds = 0.2f;
   AlkInputHoldThresholdSeconds = 0.3f;
@@ -888,6 +889,24 @@ void AAlkCharacter::AlkOnFire_Implementation(
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnFire_Implementation(...)")));
   if (HasAnyOptions(OPTION_CAN_SHOOT))
     AlkOnShoot(ScreenCoordinates);
+}
+
+bool
+AAlkCharacter::AlkPointerRayHit_Implementation(FHitResult& hitres) {
+  FVector const vecstart = bAlkUsingMotionControllers
+    ? RightMotionController->GetComponentLocation() // TODO: ### ONLY RIGHT
+    : AlkCameraActive      ->GetComponentLocation();
+  FVector const vecdir   = bAlkUsingMotionControllers
+    ? RightMotionController->GetForwardVector()
+    : AlkPointerWorldDirection;
+  FVector const vecend   = vecstart + (vecdir * AlkPointerRange);
+  return UKismetSystemLibrary::LineTraceSingle(
+    this, vecstart, vecend,
+    ETraceTypeQuery::TraceTypeQuery1, // in EngineTypes.h, Visibility?
+    false,              // bTraceComplex
+    TArray<AActor*>(),  // ActorsToIgnore
+    EDrawDebugTrace::None,
+    hitres, true);      // bIgnoreSelf
 }
 
 // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE

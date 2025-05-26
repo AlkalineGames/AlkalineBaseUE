@@ -46,6 +46,8 @@ public:
     FVector AlkPointerWorldDirection;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     int AlkFireRapidLimit;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
+    float AlkPointerRange;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
@@ -128,6 +130,10 @@ public:
   virtual void AlkOnShoot_Implementation(
     FVector const & ScreenCoordinates);
       // ^ spawns projectile
+
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+          bool AlkPointerRayHit(               FHitResult& OutHitResult);
+  virtual bool AlkPointerRayHit_Implementation(FHitResult& OutHitResult);
 
   struct Impl { virtual ~Impl() = 0; };
 
