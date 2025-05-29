@@ -712,7 +712,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
 void AAlkCharacter::PostInitializeComponents() {
   Super::PostInitializeComponents();
   auto results = runCachedAboaUeCodeAtPath(
-    codeFilePath("character.aboa"), "character-init",
+    codeFilePath("alkchar.aboa"), "alkchar-init",
     makeAboaUeDataDict({
       {"uobject", makeAboaUeDataUobject(*this)}}),
     true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
@@ -769,7 +769,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
     PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AAlkCharacter::InputTouchDragged);
   }
   auto results = callLoadedAboaUeCode(
-    "character-input-setup",
+    "alkchar-input-setup",
     makeAboaUeDataDict({
       {"uobject", makeAboaUeDataUobject(*this)}}));
 }
@@ -790,7 +790,7 @@ void AAlkCharacter::Tick(float DeltaSeconds) { // override
   downcast_mut(impl).UpdateHMDState(DeltaSeconds);
   downcast_mut(impl).UpdateInputState(DeltaSeconds);
   auto results = callLoadedAboaUeCode(
-    "character-tick",
+    "alkchar-tick",
     makeAboaUeDataDict({
       {"uobject", makeAboaUeDataUobject(*this)},
       {"delta",   makeAboaUeDataFloat(DeltaSeconds)}}));

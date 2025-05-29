@@ -1,0 +1,34 @@
+# Copyright © 2023 - 2025 Alkaline Games, LLC.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# AlkalineBaseUE character
+
+(begin
+  (= tr-alkchar-to-log   $t)
+  (= tr-alkchar-to-print $t)
+  (= tr-alkchar (or tr-alkchar-to-log tr-alkchar-to-print))
+  (= (tr-alkchar a)
+        (? tr-alkchar (@ ((s (format $f "## alkchar.aboa: ~A" a)))
+          (? tr-alkchar-to-log   (ue-log s))
+          (? tr-alkchar-to-print (ue-print-string-primary s)))))
+  (= (tr-alkchar-format-values form . vals)
+        (? tr-alkchar (tr-alkchar (apply format $f form vals))))
+
+  (= (alkchar-init uobject)
+    (tr-alkchar-format-values "(alkchar-init <uobject> ~A)" uobject)
+    ())
+
+  (= (alkchar-input-setup uobject)
+    (tr-alkchar-format-values "(alkchar-input-setup <uobject> ~A)" uobject)
+    ## TODO: @@@ currently bound and handled in C++
+    ##(ue-bind-input-action uobject "AlkAutoForward" 'pressed
+    ##  (=__ () (tr-alkchar "AUTO-FORWARD PRESSED"))))
+    ())
+
+  (= (alkchar-tick delta uobject)
+    ##(tr-alkchar-format-values "(alkchar-tick <uobject> ~A)" uobject)
+    ())
+)

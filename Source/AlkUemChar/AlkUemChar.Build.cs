@@ -25,7 +25,7 @@ public class AlkUemChar : ModuleRules
       "VRExpansionPlugin"
     });
     RuntimeDependencies.Add(
-      PluginDirectory + "/Source/aboa/character.aboa");
+      PluginDirectory + "/Source/aboa/alkchar.aboa");
     //OptimizeCode = CodeOptimization.Never;
       // ^ !!! uncomment to debug local vars that get optimized away
   }
