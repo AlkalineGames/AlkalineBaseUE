@@ -67,6 +67,8 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkHolding;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
+    bool AlkPointerRayTargetEnabled;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
 
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter, meta = (AllowPrivateAccess = "true"))
@@ -134,6 +136,12 @@ public:
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
           bool AlkPointerRayHit(               FHitResult& OutHitResult);
   virtual bool AlkPointerRayHit_Implementation(FHitResult& OutHitResult);
+
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+          void AlkPointerRayTarget( // !!! note right-const * not supported UI header generation
+                const AActor * actor, const UPrimitiveComponent * component);
+  virtual void AlkPointerRayTarget_Implementation(
+                const AActor * actor, const UPrimitiveComponent * component);
 
   struct Impl { virtual ~Impl() = 0; };
 

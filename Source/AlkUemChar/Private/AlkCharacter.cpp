@@ -66,6 +66,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   FVector2D ViewportDragThresholdRatio;
   FVector2D ViewportDivisor;
   FVector2D ViewportMousePosition;
+  FHitResult PointerRayHitResultTick;
 
   AAlkCharacter const & face;
   AAlkCharacter & face_mut;
@@ -794,6 +795,18 @@ void AAlkCharacter::Tick(float DeltaSeconds) { // override
     makeAboaUeDataDict({
       {"uobject", makeAboaUeDataUobjectRef(*this)},
       {"delta",   makeAboaUeDataFloat(DeltaSeconds)}}));
+  if (AlkPointerRayTargetEnabled) {
+    auto &     hitresprev = downcast_mut(impl).PointerRayHitResultTick;
+    FHitResult hitresnext;
+    AlkPointerRayHit(hitresnext);
+    if (   (hitresnext.HitObjectHandle != hitresprev.HitObjectHandle)
+        || (hitresnext.Component       != hitresprev.Component)) {
+      hitresprev = hitresnext;
+      AlkPointerRayTarget(
+        hitresnext.HitObjectHandle.FetchActor(), // !!! obviously already loaded
+        hitresnext.Component.Get());
+    }
+  }
 }
 
 #if 0 // TODO: ### FOR SCREEN TO WORLD COORDINATES
@@ -907,6 +920,19 @@ AAlkCharacter::AlkPointerRayHit_Implementation(FHitResult& hitres) {
     TArray<AActor*>(),  // ActorsToIgnore
     EDrawDebugTrace::None,
     hitres, true);      // bIgnoreSelf
+}
+
+void
+AAlkCharacter::AlkPointerRayTarget_Implementation(
+  const AActor *              actor,
+  const UPrimitiveComponent * component
+) {
+  auto results = callLoadedAboaUeCode(
+    "alkchar-pointer-ray-target",
+    makeAboaUeDataDict({
+      {"actor",     makeAboaUeDataUobjectPtr(actor)},
+      {"component", makeAboaUeDataUobjectPtr(component)},
+      {"uobject",   makeAboaUeDataUobjectRef(*this)}}));
 }
 
 // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
