@@ -714,7 +714,7 @@ void AAlkCharacter::PostInitializeComponents() {
   auto results = runCachedAboaUeCodeAtPath(
     codeFilePath("alkchar.aboa"), "alkchar-init",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobject(*this)}}),
+      {"uobject", makeAboaUeDataUobjectRef(*this)}}),
     true); // forceReload TODO: ### UNTIL AUTO-RELOAD IS IMPLEMENTED
   //PrintStringToScreen(dumpAboaUeDataDict(results));
     // ^ TODO: ### TRACING
@@ -771,7 +771,7 @@ void AAlkCharacter::SetupPlayerInputComponent(
   auto results = callLoadedAboaUeCode(
     "alkchar-input-setup",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobject(*this)}}));
+      {"uobject", makeAboaUeDataUobjectRef(*this)}}));
 }
 
 void AAlkCharacter::BeginPlay() {
@@ -792,7 +792,7 @@ void AAlkCharacter::Tick(float DeltaSeconds) { // override
   auto results = callLoadedAboaUeCode(
     "alkchar-tick",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobject(*this)},
+      {"uobject", makeAboaUeDataUobjectRef(*this)},
       {"delta",   makeAboaUeDataFloat(DeltaSeconds)}}));
 }
 
