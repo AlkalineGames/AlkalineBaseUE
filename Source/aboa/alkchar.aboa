@@ -13,7 +13,7 @@
   (= (tr-alkchar a)
     (tr tr-alkchar-to-log tr-alkchar-to-print tr-alkchar-source a))
   (= (tr-alkchar-form-vals form . vals)
-    (tr-form-vals tr-alkchar-to-log tr-alkchar-to-print tr-alkchar-source form vals))
+    (apply tr-form-vals tr-alkchar-to-log tr-alkchar-to-print tr-alkchar-source form vals))
 
   (= (alkchar-init uobject)
     (tr-alkchar-form-vals "(alkchar-init ~A)" uobject)
