@@ -66,7 +66,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   FVector2D ViewportDragThresholdRatio;
   FVector2D ViewportDivisor;
   FVector2D ViewportMousePosition;
-  FHitResult PointerRayHitResultTick;
+  FHitResult PickRayHitResultTick;
 
   AAlkCharacter const & face;
   AAlkCharacter & face_mut;
@@ -695,7 +695,7 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
   AlkFireRapidLimit = 0;
-  AlkPointerRange = 1000.f;
+  AlkPickRange = 1000.f;
   AlkInputDragThresholdPixels = 4.f;
   AlkInputFireRapidThresholdSeconds = 0.2f;
   AlkInputHoldThresholdSeconds = 0.3f;
@@ -795,14 +795,14 @@ void AAlkCharacter::Tick(float DeltaSeconds) { // override
     makeAboaUeDataDict({
       {"uobject", makeAboaUeDataUobjectRef(*this)},
       {"delta",   makeAboaUeDataFloat(DeltaSeconds)}}));
-  if (AlkPointerRayTargetEnabled) {
-    auto &     hitresprev = downcast_mut(impl).PointerRayHitResultTick;
+  if (AlkPickRayTickEnabled) {
+    auto &     hitresprev = downcast_mut(impl).PickRayHitResultTick;
     FHitResult hitresnext;
-    AlkCameraRayHit(hitresnext);
+    AlkPickRayCameraHit(hitresnext);
     if (   (hitresnext.HitObjectHandle != hitresprev.HitObjectHandle)
         || (hitresnext.Component       != hitresprev.Component)) {
       hitresprev = hitresnext;
-      AlkPointerRayTarget(
+      AlkPickRayTarget(
         hitresnext.HitObjectHandle.FetchActor(), // !!! obviously already loaded
         hitresnext.Component.Get());
     }
@@ -905,44 +905,48 @@ void AAlkCharacter::AlkOnFire_Implementation(
 }
 
 bool
-AAlkCharacter::AlkCameraRayHit_Implementation(FHitResult& hitres) {
-  FVector const vecstart = AlkCameraActive->GetComponentLocation();
-  FVector const vecdir   = AlkCameraActive->GetForwardVector();
-  FVector const vecend   = vecstart + (vecdir * AlkPointerRange);
+AAlkCharacter::AlkPickRayHit_Implementation(
+  FVector const & Location,
+  FVector const & Direction,
+  FHitResult    & OutHitResult
+) {
+  FVector const Endpoint = Location + (Direction * AlkPickRange);
   return UKismetSystemLibrary::LineTraceSingle(
-    this, vecstart, vecend,
+    this, Location, Endpoint,
     ETraceTypeQuery::TraceTypeQuery1, // in EngineTypes.h, Visibility?
-    false,              // bTraceComplex
-    TArray<AActor*>(),  // ActorsToIgnore
+    false,                // bTraceComplex
+    TArray<AActor*>(),    // ActorsToIgnore
     EDrawDebugTrace::None,
-    hitres, true);      // bIgnoreSelf
+    OutHitResult, true);  // bIgnoreSelf
 }
 
 bool
-AAlkCharacter::AlkPointerRayHit_Implementation(FHitResult& hitres) {
-  FVector const vecstart = bAlkUsingMotionControllers
-    ? RightMotionController->GetComponentLocation() // TODO: ### ONLY RIGHT
-    : AlkCameraActive      ->GetComponentLocation();
-  FVector const vecdir   = bAlkUsingMotionControllers
-    ? RightMotionController->GetForwardVector()
-    : AlkPointerWorldDirection;
-  FVector const vecend   = vecstart + (vecdir * AlkPointerRange);
-  return UKismetSystemLibrary::LineTraceSingle(
-    this, vecstart, vecend,
-    ETraceTypeQuery::TraceTypeQuery1, // in EngineTypes.h, Visibility?
-    false,              // bTraceComplex
-    TArray<AActor*>(),  // ActorsToIgnore
-    EDrawDebugTrace::None,
-    hitres, true);      // bIgnoreSelf
+AAlkCharacter::AlkPickRayCameraHit_Implementation(FHitResult& hitres) {
+  return AlkPickRayHit_Implementation(
+    AlkCameraActive->GetComponentLocation(),
+    AlkCameraActive->GetForwardVector(),
+    hitres);
+}
+
+bool
+AAlkCharacter::AlkPickRayPointerHit_Implementation(FHitResult& hitres) {
+  return AlkPickRayHit_Implementation(
+    bAlkUsingMotionControllers
+      ? RightMotionController->GetComponentLocation() // TODO: ### ONLY RIGHT
+      : AlkCameraActive      ->GetComponentLocation(),
+    bAlkUsingMotionControllers
+      ? RightMotionController->GetForwardVector()
+      : AlkPointerWorldDirection,
+    hitres);
 }
 
 void
-AAlkCharacter::AlkPointerRayTarget_Implementation(
+AAlkCharacter::AlkPickRayTarget_Implementation(
   const AActor *              actor,
   const UPrimitiveComponent * component
 ) {
   auto results = callLoadedAboaUeCode(
-    "alkchar-pointer-ray-target",
+    "alkchar-pick-ray-target",
     makeAboaUeDataDict({
       {"actor",     makeAboaUeDataUobjectPtr(actor)},
       {"component", makeAboaUeDataUobjectPtr(component)},

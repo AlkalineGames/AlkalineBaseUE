@@ -47,7 +47,7 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     int AlkFireRapidLimit;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
-    float AlkPointerRange;
+    float AlkPickRange;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputDragThresholdPixels;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
@@ -67,7 +67,7 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkHolding;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
-    bool AlkPointerRayTargetEnabled;
+    bool AlkPickRayTickEnabled;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     bool AlkTracing;
 
@@ -134,17 +134,27 @@ public:
       // ^ spawns projectile
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
-          bool AlkCameraRayHit(               FHitResult& OutHitResult);
-  virtual bool AlkCameraRayHit_Implementation(FHitResult& OutHitResult);
+          bool AlkPickRayHit(
+              FVector const & Location,
+              FVector const & Direction,
+              FHitResult    & OutHitResult);
+  virtual bool AlkPickRayHit_Implementation(
+              FVector const & Location,
+              FVector const & Direction,
+              FHitResult    & OutHitResult);
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
-          bool AlkPointerRayHit(               FHitResult& OutHitResult);
-  virtual bool AlkPointerRayHit_Implementation(FHitResult& OutHitResult);
+          bool AlkPickRayCameraHit(               FHitResult& OutHitResult);
+  virtual bool AlkPickRayCameraHit_Implementation(FHitResult& OutHitResult);
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
-          void AlkPointerRayTarget( // !!! note right-const * not supported UI header generation
+          bool AlkPickRayPointerHit(               FHitResult& OutHitResult);
+  virtual bool AlkPickRayPointerHit_Implementation(FHitResult& OutHitResult);
+
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+          void AlkPickRayTarget( // !!! note right-const * not supported UI header generation
                 const AActor * actor, const UPrimitiveComponent * component);
-  virtual void AlkPointerRayTarget_Implementation(
+  virtual void AlkPickRayTarget_Implementation(
                 const AActor * actor, const UPrimitiveComponent * component);
 
   struct Impl { virtual ~Impl() = 0; };

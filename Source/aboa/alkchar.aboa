@@ -17,7 +17,7 @@
 
   (= (alkchar-init uobject)
     (tr-alkchar-form-vals "(alkchar-init ~A)" uobject)
-    (=> ((aboaue-registry-pubsub-events-ref) 'alkchar-pointer-ray-target)
+    (=> ((aboaue-registry-pubsub-events-ref) 'alkchar-pick-ray-target)
       '()) # subscriber functions called on this event
     ())
 
@@ -28,9 +28,12 @@
     ##  (=__ () (tr-alkchar "AUTO-FORWARD PRESSED"))))
     ())
 
-  (= (alkchar-pointer-ray-target actor component uobject)
-    ##(tr-alkchar-form-vals "(alkchar-pointer-ray-target ~A ~A ~A)" actor component uobject)
-    (aboaue-registry-publish-event 'alkchar-pointer-ray-target (list actor component uobject))
+  (= (alkchar-pick-ray-target actor component uobject)
+    ##(tr-alkchar-form-vals "(alkchar-pick-ray-target ~A ~A ~A)"
+    ##  (ue-uobject-get-display-name actor)
+    ##  (ue-uobject-get-display-name component)
+    ##  (ue-uobject-get-display-name uobject))
+    (aboaue-registry-publish-event 'alkchar-pick-ray-target (list actor component uobject))
     ())
 
   (= (alkchar-tick delta uobject)
