@@ -798,7 +798,7 @@ void AAlkCharacter::Tick(float DeltaSeconds) { // override
   if (AlkPointerRayTargetEnabled) {
     auto &     hitresprev = downcast_mut(impl).PointerRayHitResultTick;
     FHitResult hitresnext;
-    AlkPointerRayHit(hitresnext);
+    AlkCameraRayHit(hitresnext);
     if (   (hitresnext.HitObjectHandle != hitresprev.HitObjectHandle)
         || (hitresnext.Component       != hitresprev.Component)) {
       hitresprev = hitresnext;
@@ -902,6 +902,20 @@ void AAlkCharacter::AlkOnFire_Implementation(
     UKismetSystemLibrary::PrintString(this, FString(TEXT("AlkOnFire_Implementation(...)")));
   if (HasAnyOptions(OPTION_CAN_SHOOT))
     AlkOnShoot(ScreenCoordinates);
+}
+
+bool
+AAlkCharacter::AlkCameraRayHit_Implementation(FHitResult& hitres) {
+  FVector const vecstart = AlkCameraActive->GetComponentLocation();
+  FVector const vecdir   = AlkCameraActive->GetForwardVector();
+  FVector const vecend   = vecstart + (vecdir * AlkPointerRange);
+  return UKismetSystemLibrary::LineTraceSingle(
+    this, vecstart, vecend,
+    ETraceTypeQuery::TraceTypeQuery1, // in EngineTypes.h, Visibility?
+    false,              // bTraceComplex
+    TArray<AActor*>(),  // ActorsToIgnore
+    EDrawDebugTrace::None,
+    hitres, true);      // bIgnoreSelf
 }
 
 bool

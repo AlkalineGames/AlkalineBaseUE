@@ -134,6 +134,10 @@ public:
       // ^ spawns projectile
 
   UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
+          bool AlkCameraRayHit(               FHitResult& OutHitResult);
+  virtual bool AlkCameraRayHit_Implementation(FHitResult& OutHitResult);
+
+  UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = AlkCharacter)
           bool AlkPointerRayHit(               FHitResult& OutHitResult);
   virtual bool AlkPointerRayHit_Implementation(FHitResult& OutHitResult);
 
