@@ -779,6 +779,8 @@ void AAlkCharacter::BeginPlay() {
   Super::BeginPlay();
   AlkFollowBoom->SetRelativeLocation(
     FVector(.0, .0, 1.5*GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+  AlkFollowCamera->SetRelativeLocation(
+    FVector(.0, 25.0, .0)); // TODO: ### HARDCODED OFFSET TO RIGHT SHOULDER
   AlkFollowCamera->AttachToComponent(
     AlkFollowBoom,
     FAttachmentTransformRules::KeepRelativeTransform,
