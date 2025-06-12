@@ -17,6 +17,8 @@
 
   (= (alkchar-init uobject)
     (tr-alkchar-form-vals "(alkchar-init ~A)" uobject)
+    ## TODO: FAILS AT FIRST LAUNCH FROM UE EDITOR DUE TO SEQUENCE OF INITS
+    ##(tr-alkchar-form-vals "aboaue-viewport-widget == ~A" aboaue-viewport-widget)
     (=> ((aboaue-registry-pubsub-events-ref) 'alkchar-pick-ray-target)
       '()) # subscriber functions called on this event
     ())
