@@ -371,9 +371,23 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputLookRate(float const Rate) {
+    if (Rate == 0.f) return; // !!! called on every tick
     auto const world = face.GetWorld();
     if (world && Rate != 0.f) face_mut.AddControllerPitchInput(
       Rate * face.AlkLookRateDegPerSec * world->GetDeltaSeconds());
+  }
+
+  void InputDolly(float const AxisValue) {
+    if (AxisValue == 0.f)
+      return; // !!! because called on every tick
+    auto const lenfrom  = face.AlkFollowBoom->TargetArmLength;
+    auto const lento    = lenfrom - (AxisValue * face.AlkDollyBoomScale);
+    auto const len      = lento < face.AlkDollyBoomMin ? face.AlkDollyBoomMin
+                        : lento > face.AlkDollyBoomMax ? face.AlkDollyBoomMax
+                        : lento;
+    if (len == lenfrom)
+      return; // !!! because called on every tick
+    face.AlkFollowBoom->TargetArmLength = len;
   }
 
   void InputMouseMovingDisable() {
@@ -688,25 +702,28 @@ void AAlkCharacter::completeConstruction(int const inOptions) {
     AlkShootOffset = FVector(0.f, 0.f, 0.f);
   }
   // blueprintables
-  AlkInputDragMoveMetersPerViewport = FVector(10.f, 10.f, 10.f);
-  AlkInputDragTurnDegreesPerViewport = FVector(360.f, 144.f, 0.f);
-  AlkPointerWorldDirection = FVector(1.f, 0.f, 0.f);
+  AlkInputDragMoveMetersPerViewport   = FVector(10.f, 10.f, 10.f);
+  AlkInputDragTurnDegreesPerViewport  = FVector(360.f, 144.f, 0.f);
+  AlkPointerWorldDirection            = FVector(1.f, 0.f, 0.f);
     // !!! ^ account for the UE PlayerController values of
     // !!! InputYawScale (default 2.5) and
     // !!! InputPitchScale (default -2.5)
-  AlkFireRapidLimit = 0;
-  AlkPickRange = 1000.f;
-  AlkInputDragThresholdPixels = 4.f;
-  AlkInputFireRapidThresholdSeconds = 0.2f;
-  AlkInputHoldThresholdSeconds = 0.3f;
-  AlkLookRateDegPerSec = 45.f;
-  AlkTurnRateDegPerSec = 45.f;
-  AlkTurnSnapDeg = 5.f;
+  AlkFireRapidLimit                   = 0;
+  AlkPickRange                        = 1000.f;
+  AlkInputDragThresholdPixels         = 4.f;
+  AlkInputFireRapidThresholdSeconds   = 0.2f;
+  AlkInputHoldThresholdSeconds        = 0.3f;
+  AlkDollyBoomMin                     = 50.f;
+  AlkDollyBoomMax                     = 900.f;
+  AlkDollyBoomScale                   = 30.f;
+  AlkLookRateDegPerSec                = 45.f;
+  AlkTurnRateDegPerSec                = 45.f;
+  AlkTurnSnapDeg                      = 5.f;
 
 # // TODO: $$$ see AlkAcquireMutFollowBoom() below for FP lazy acquisition that UE cannot deal with for some reason
   AlkFollowBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("AlkFollowBoom"));
   AlkFollowBoom->SetupAttachment(RootComponent);
-  //AlkFollowBoom->TargetArmLength = 300.f; // TODO: @@@ ALREADY THE DEFAULT
+  AlkFollowBoom->TargetArmLength      = 250.f; // 300.f is the default
   AlkFollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("AlkFollowCamera"));
 }
 
@@ -758,9 +775,10 @@ void AAlkCharacter::SetupPlayerInputComponent(
   PlayerInputComponent->BindAxis("AlkMouseX", this, &AAlkCharacter::InputMouseAxis);
   PlayerInputComponent->BindAxis("AlkMouseY", this, &AAlkCharacter::InputMouseAxis);
 
-  PlayerInputComponent->BindAxis("AlkLook", this, &APawn::AddControllerPitchInput);
+  PlayerInputComponent->BindAxis("AlkDolly",    this, &AAlkCharacter::InputDolly);
+  PlayerInputComponent->BindAxis("AlkLook",     this, &APawn::AddControllerPitchInput);
   PlayerInputComponent->BindAxis("AlkLookRate", this, &AAlkCharacter::InputLookRate);
-  PlayerInputComponent->BindAxis("AlkTurn", this, &APawn::AddControllerYawInput);
+  PlayerInputComponent->BindAxis("AlkTurn",     this, &APawn::AddControllerYawInput);
   PlayerInputComponent->BindAxis("AlkTurnRate", this, &AAlkCharacter::InputTurnRate);
 
   if (FPlatformMisc::GetUseVirtualJoysticks()
@@ -778,9 +796,9 @@ void AAlkCharacter::SetupPlayerInputComponent(
 void AAlkCharacter::BeginPlay() {
   Super::BeginPlay();
   AlkFollowBoom->SetRelativeLocation(
-    FVector(.0, .0, 1.5*GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+    FVector(.0, .0, 1.6*GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
   AlkFollowCamera->SetRelativeLocation(
-    FVector(.0, 25.0, .0)); // TODO: ### HARDCODED OFFSET TO RIGHT SHOULDER
+    FVector(.0, 40.0, .0)); // TODO: ### HARDCODED OFFSET TO RIGHT SHOULDER
   AlkFollowCamera->AttachToComponent(
     AlkFollowBoom,
     FAttachmentTransformRules::KeepRelativeTransform,
@@ -982,6 +1000,10 @@ void AAlkCharacter::InputTurnRate(float const Rate) {
 
 void AAlkCharacter::InputLookRate(float const Rate) {
   downcast_mut(impl).InputLookRate(Rate);
+}
+
+void AAlkCharacter::InputDolly(float const AxisValue) {
+  downcast_mut(impl).InputDolly(AxisValue);
 }
 
 void AAlkCharacter::InputMouseMovingDisable() {

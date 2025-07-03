@@ -55,6 +55,12 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AlkCharacter)
     float AlkInputHoldThresholdSeconds;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
+    float AlkDollyBoomMin;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
+    float AlkDollyBoomMax;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
+    float AlkDollyBoomScale;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
     float AlkLookRateDegPerSec;
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AlkCharacter)
     float AlkTurnRateDegPerSec;
@@ -170,9 +176,10 @@ private:
   void InputRecenterXR();
 
   void InputMoveForward(float const);
-  void InputMoveRight(float const);
-  void InputTurnRate(float const);
-  void InputLookRate(float const);
+  void InputMoveRight(  float const);
+  void InputTurnRate(   float const);
+  void InputLookRate(   float const);
+  void InputDolly(      float const);
 
   void InputMouseMovingDisable();
   void InputMouseMovingEnable();
