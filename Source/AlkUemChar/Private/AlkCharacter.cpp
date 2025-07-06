@@ -353,9 +353,12 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     else {
       EstablishMovingForward();
       face_mut.AddMovementInput(
-        // face.GetActorRightVector(), val);
+        // face.GetActorForwardVector(), val);
         // !!! use VRBaseCharacter::
         face.GetVRForwardVector(), mutval);
+      if (face.AlkTracing)
+        UKismetSystemLibrary::PrintString(&face_mut,
+          FString::Printf(TEXT("InputMoveForward(%f)"), mutval));
     }
   }
 
@@ -366,6 +369,9 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
         // face.GetActorRightVector(), Value);
         // !!! use VRBaseCharacter::
         face.GetVRRightVector(), Value);
+      if (face.AlkTracing)
+        UKismetSystemLibrary::PrintString(&face_mut,
+          FString::Printf(TEXT("InputMoveRight(%f)"), Value));
     } else
       EstablishStoppingRight();
   }
@@ -441,6 +447,11 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMouseAxis(float const Value) {
+    // TODO: ### dragging for movement will need to sample values and interpolate the derivative
+    //       ### because ::AddMovementInput(...) needs a consistent feed of values per input tick
+    if (face.AlkTracing && bMouseMovingEnabled)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString::Printf(TEXT("InputMouseAxis(%f)"), Value));
     if (Value == 0.f)
       return;
     // !!! we are not using the passed in Value because it is inconsistent
@@ -451,7 +462,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     if (HoldMeasuring)
       StopHoldMeasuring();
     if (bMouseMovingEnabled) {
-      DragMoveByViewportDelta(deltaPos);
+      // TODO: ### SEE NOTE ABOVE ABOUT SAMPLING VALUES
+      //DragMoveByViewportDelta(deltaPos);
       if (bMouseTurningEnabled)
         DragTurnByViewportDelta(FVector2D(deltaPos.X, 0.f));
       UndoMouseDeltaPosition(deltaPos);
@@ -547,7 +559,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     FVector const Location
   ) {
     if (face.AlkTracing)
-      UKismetSystemLibrary::PrintString(&face_mut, FString(TEXT("InputTouchPressed(...)")));
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputTouchPressed(...)")));
     if (FingerIndex > ETouchIndex::MAX_TOUCHES)
       return; // TODO: @@@ LOG FAILURE
     if (TouchFingerStates[FingerIndex].bPressed)
