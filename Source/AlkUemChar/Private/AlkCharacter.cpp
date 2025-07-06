@@ -237,6 +237,12 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     }
   }
 
+  void ShowMouseCursor(bool Show) {
+    auto const pc = face.GetLocalViewingPlayerController();
+    if (pc)
+      pc->SetShowMouseCursor(Show);
+  }
+
   void EnterHolding(FVector const & ScreenCoordinates) {
     face_mut.AlkHolding = true;
     face_mut.AlkOnHoldEnter(ScreenCoordinates);
@@ -393,6 +399,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   void InputMouseMovingDisable() {
     EstablishStoppingForward();
     EstablishStoppingRight();
+    if (!bMouseTurningEnabled)
+      ShowMouseCursor(true);
     bMouseMovingEnabled = false;
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
@@ -402,6 +410,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   void InputMouseMovingEnable() {
     EstablishMovingForward();
     EstablishMovingRight();
+    ShowMouseCursor(false);
     bMouseMovingEnabled = true;
     // !!! update whenever enabled in case the viewport changed
     UpdateViewportState();
@@ -412,6 +421,8 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMouseTurningDisable() {
+    if (!bMouseMovingEnabled)
+      ShowMouseCursor(true);
     bMouseTurningEnabled = false;
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
@@ -419,6 +430,7 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
   }
 
   void InputMouseTurningEnable() {
+    ShowMouseCursor(false);
     bMouseTurningEnabled = true;
     // !!! update whenever enabled in case the viewport changed
     UpdateViewportState();
