@@ -310,6 +310,20 @@ struct AAlkCharacterImpl: AAlkCharacter::Impl {
     }
   }
 
+  void InputActionPrimary() {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputActionPrimary()")));
+    // !!! doing nothing here, intended for override
+  }
+
+  void InputActionSecondary() {
+    if (face.AlkTracing)
+      UKismetSystemLibrary::PrintString(&face_mut,
+        FString(TEXT("InputActionSecondary()")));
+    // !!! doing nothing here, intended for override
+  }
+
   void InputFireOrHoldPressed() {
     if (face.AlkTracing)
       UKismetSystemLibrary::PrintString(&face_mut,
@@ -773,6 +787,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
   if (!PlayerInputComponent)
     return; // TODO: @@@ LOG FAILURE
   // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
+  PlayerInputComponent->BindAction("AlkActionPrimary",    IE_Pressed, this, &AAlkCharacter::InputActionPrimary);
+  PlayerInputComponent->BindAction("AlkActionSecondary",  IE_Pressed, this, &AAlkCharacter::InputActionSecondary);
   PlayerInputComponent->BindAction("AlkFireOrHold", IE_Pressed, this, &AAlkCharacter::InputFireOrHoldPressed);
   PlayerInputComponent->BindAction("AlkFireOrHold", IE_Released, this, &AAlkCharacter::InputFireOrHoldReleased);
   PlayerInputComponent->BindAction("AlkRecenterXR", IE_Pressed, this, &AAlkCharacter::InputRecenterXR);
@@ -815,7 +831,8 @@ void AAlkCharacter::SetupPlayerInputComponent(
   auto results = callLoadedAboaUeCode(
     "alkchar-input-setup",
     makeAboaUeDataDict({
-      {"uobject", makeAboaUeDataUobjectRef(*this)}}));
+      {"component", makeAboaUeDataUobjectPtr(PlayerInputComponent)},
+      {"uobject",   makeAboaUeDataUobjectRef(*this)}}));
 }
 
 void AAlkCharacter::BeginPlay() {
@@ -999,6 +1016,14 @@ AAlkCharacter::AlkPickRayTarget_Implementation(
 }
 
 // TODO: @@@ REFACTOR THESE BINDINGS TO DELEGATE THROUGH UOBJECT DELEGATE
+void AAlkCharacter::InputActionPrimary() {
+  downcast_mut(impl).InputActionPrimary();
+}
+
+void AAlkCharacter::InputActionSecondary() {
+  downcast_mut(impl).InputActionSecondary();
+}
+
 void AAlkCharacter::InputFireOrHoldPressed() {
   downcast_mut(impl).InputFireOrHoldPressed();
 }

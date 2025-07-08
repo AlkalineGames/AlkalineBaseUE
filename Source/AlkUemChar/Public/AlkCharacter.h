@@ -165,6 +165,11 @@ public:
 
   struct Impl { virtual ~Impl() = 0; };
 
+protected:
+  // intended for override, here only traces
+  virtual void InputActionPrimary();
+  virtual void InputActionSecondary();
+
 private:
   void completeConstruction(int const inOptions);
 
