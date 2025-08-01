@@ -973,13 +973,8 @@ AAlkCharacter::AlkPickRayHit_Implementation(
   FHitResult    & OutHitResult
 ) {
   FVector const Endpoint = Location + (Direction * AlkPickRange);
-  return UKismetSystemLibrary::LineTraceSingle(
-    this, Location, Endpoint,
-    ETraceTypeQuery::TraceTypeQuery1, // in EngineTypes.h, Visibility?
-    false,                // bTraceComplex
-    TArray<AActor*>(),    // ActorsToIgnore
-    EDrawDebugTrace::None,
-    OutHitResult, true);  // bIgnoreSelf
+  return pure::WorldObjectLineTraceSingle(
+    this, Location, Endpoint, OutHitResult, true);  // bIgnoreSelf
 }
 
 bool
